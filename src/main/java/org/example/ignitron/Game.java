@@ -1,0 +1,51 @@
+package org.example.ignitron;
+
+import java.util.HashSet;
+import java.util.Set;
+
+public class Game {
+
+    private String name;
+    private String path;
+    private String icon;
+    private Set<String> gameTags = new HashSet<String>();
+    private int playTime;
+    private String lastPlayed;
+    private String launcher;
+
+    Game(String name, String path, String icon, Set<String> gameTags, int playTime, String lastPlayed, String launcher) {
+        this.name = name;
+        this.path = path;
+        this.icon = icon;
+        this.gameTags = gameTags;
+        this.playTime = playTime;
+        this.lastPlayed = lastPlayed;
+        this.launcher = launcher;
+    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getPath() { return path; }
+    public void setPath(String path) { this.path = path; }
+
+    public String getIcon() { return icon; }
+    public void setIcon(String icon) { this.icon = icon; }
+
+    public Set<String> getGameTags() { return gameTags; }
+    public void setGameTags(Set<String> gameTags) { this.gameTags = gameTags; }
+
+    public int getPlayTime() { return playTime; }
+    public void setPlayTime(int playTime) { this.playTime = playTime; }
+
+    public String getLastPlayed() { return lastPlayed; }
+    public void setLastPlayed(String lastPlayed) { this.lastPlayed = lastPlayed; }
+
+    public String getLauncher() { return launcher; }
+    public void setLauncher(String launcher) { this.launcher = launcher; }
+
+    // Useful methods for tags
+    public void addTag(String tag) { gameTags.add(tag.toLowerCase()); }
+    public void removeTag(String tag) { gameTags.remove(tag.toLowerCase()); }
+    public boolean hasTag(String tag) { return gameTags.contains(tag.toLowerCase()); }
+}
+
