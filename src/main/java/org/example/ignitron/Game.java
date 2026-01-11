@@ -2,6 +2,8 @@ package org.example.ignitron;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.time.LocalDateTime;
+
 
 public class Game {
 
@@ -10,10 +12,10 @@ public class Game {
     private String icon;
     private Set<String> gameTags = new HashSet<String>();
     private int playTime;
-    private String lastPlayed;
+    private LocalDateTime lastPlayed;
     private String launcher;
 
-    Game(String name, String path, String icon, Set<String> gameTags, int playTime, String lastPlayed, String launcher) {
+    Game(String name, String path, String icon, Set<String> gameTags, int playTime, LocalDateTime lastPlayed, String launcher) {
         this.name = name;
         this.path = path;
         this.icon = icon;
@@ -37,8 +39,8 @@ public class Game {
     public int getPlayTime() { return playTime; }
     public void setPlayTime(int playTime) { this.playTime = playTime; }
 
-    public String getLastPlayed() { return lastPlayed; }
-    public void setLastPlayed(String lastPlayed) { this.lastPlayed = lastPlayed; }
+    public LocalDateTime getLastPlayed() { return lastPlayed; }
+    public void setLastPlayed(LocalDateTime lastPlayed) { this.lastPlayed = lastPlayed; }
 
     public String getLauncher() { return launcher; }
     public void setLauncher(String launcher) { this.launcher = launcher; }

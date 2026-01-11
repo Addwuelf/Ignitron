@@ -8,4 +8,6 @@ module org.example.ignitron {
 
     opens org.example.ignitron to javafx.fxml;
     exports org.example.ignitron;
+    exports org.example.ignitron.controllers;
+    opens org.example.ignitron.controllers to javafx.fxml;
 }

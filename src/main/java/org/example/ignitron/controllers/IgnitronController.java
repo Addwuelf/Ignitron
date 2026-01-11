@@ -1,4 +1,4 @@
-package org.example.ignitron;
+package org.example.ignitron.controllers;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
