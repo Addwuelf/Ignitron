@@ -39,12 +39,11 @@ public class GameDetailsController {
     private void updateUI() {
         if (currentGame != null) {
             gameName.setText(currentGame.getName());
-            String iconPath = currentGame.getIcon();
+            Image icon = currentGame.getIcon();
 
             // Set game icon
-            if (iconPath != null && !iconPath.isEmpty()) {
-                Image image = new Image(iconPath);
-                gameIcon.setImage(image);
+            if (icon != null) {
+                gameIcon.setImage(icon);
             } else {
                 gameIcon.setImage(null);
             }

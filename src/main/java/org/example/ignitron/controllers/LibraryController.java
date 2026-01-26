@@ -96,7 +96,10 @@ public class LibraryController {
 
             // Load icon if you have one
             if (game.getIcon() != null) {
-                icon.setImage(new Image(new File(game.getIcon()).toURI().toString()));
+                icon.setImage(game.getIcon());
+            }
+            else {
+
             }
 
             Label name = new Label(game.getName());
@@ -107,19 +110,7 @@ public class LibraryController {
             return card;
         }
 
-//        String name = nameField.getText();
-//        String path = pathField.getText();
-//        String icon = iconField.getText();
-//        Set<String> tags = new HashSet<String>(Arrays.asList(tagsField.getText().split(",")));
-//
-//        Game newGame = new Game(name, path, icon, tags);
-//        addGame(newGame);
-//
-//        // Clear fields after adding
-//        nameField.clear();
-//        pathField.clear();
-//        iconField.clear();
-//        tagsField.clear();
+
 
 
 

@@ -4,10 +4,12 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.example.ignitron.Game;
+import org.example.ignitron.IconExtractor;
 import org.example.ignitron.IgnitronApplication;
 import org.example.ignitron.Library;
 
@@ -105,6 +107,7 @@ public class MainController {
         return executables;
     }
 
+    // Determines what to do with exe files. If not empty adds to library
     private void handleExecutables (ArrayList<File> executables, File folder) {
         if (executables.isEmpty()) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -113,17 +116,26 @@ public class MainController {
     }
     else if (executables.size() == 1) {
        File file = executables.get(0);
-        Game game = new Game(file.getPath(), folder);
-        library.addGame(game);
-        if (getCurrentController() != null) {
-            getCurrentController().refresh();
+       Game game = new Game(file.getPath(), folder);
+       String gameName = new File(file.getPath()).getName().replace(".exe", "");
+       game.setName(gameName);
+
+            Image icon = IconExtractor.extract32Icon(file.getPath());
+            game.setIcon(icon);
+
+       if (getCurrentController() != null) {
+            getCurrentController().addGameToLibrary(game);
         }
     }
     else {
         ArrayList<File> chosenGames = showMultiSelectExeDialog(executables);
         for (File file : chosenGames) {
             Game game = new Game(file.getPath(), folder);
-            game.setName(file.getName());
+            String gameName = new File(file.getPath()).getName().replace(".exe", "");
+            game.setName(gameName);
+
+            Image icon = IconExtractor.extract32Icon(file.getPath());
+            game.setIcon(icon);
 
             if (getCurrentController() != null) {
                 getCurrentController().addGameToLibrary(game);

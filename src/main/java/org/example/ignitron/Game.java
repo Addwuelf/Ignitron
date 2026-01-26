@@ -1,5 +1,7 @@
 package org.example.ignitron;
 
+import javafx.scene.image.Image;
+
 import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
@@ -10,14 +12,14 @@ public class Game {
 
     private String name;
     private String path;
-    private String icon;
+    private Image icon;
     private Set<String> gameTags = new HashSet<String>();
     private int playTime;
     private LocalDateTime lastPlayed;
     private String launcher;
     private File folder;
 
-  public Game(String name, String path, String icon, Set<String> gameTags, int playTime, LocalDateTime lastPlayed, String launcher) {
+  public Game(String name, String path, Image icon, Set<String> gameTags, int playTime, LocalDateTime lastPlayed, String launcher) {
         this.name = name;
         this.path = path;
         this.icon = icon;
@@ -39,8 +41,8 @@ public class Game {
     public String getPath() { return path; }
     public void setPath(String path) { this.path = path; }
 
-    public String getIcon() { return icon; }
-    public void setIcon(String icon) { this.icon = icon; }
+    public Image getIcon() { return icon; }
+    public void setIcon(Image icon) { this.icon = icon; }
 
     public Set<String> getGameTags() { return gameTags; }
     public void setGameTags(Set<String> gameTags) { this.gameTags = gameTags; }
