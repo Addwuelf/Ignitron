@@ -1,5 +1,6 @@
 package org.example.ignitron;
 
+import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 import java.time.LocalDateTime;
@@ -14,8 +15,9 @@ public class Game {
     private int playTime;
     private LocalDateTime lastPlayed;
     private String launcher;
+    private File folder;
 
-    Game(String name, String path, String icon, Set<String> gameTags, int playTime, LocalDateTime lastPlayed, String launcher) {
+  public Game(String name, String path, String icon, Set<String> gameTags, int playTime, LocalDateTime lastPlayed, String launcher) {
         this.name = name;
         this.path = path;
         this.icon = icon;
@@ -23,7 +25,14 @@ public class Game {
         this.playTime = playTime;
         this.lastPlayed = lastPlayed;
         this.launcher = launcher;
-    }
+  }
+
+  public Game (String path, File folder) {
+      this.path = path;
+      this.folder = folder;
+  }
+
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
@@ -44,6 +53,9 @@ public class Game {
 
     public String getLauncher() { return launcher; }
     public void setLauncher(String launcher) { this.launcher = launcher; }
+
+    public void setFolder(File folder) {this.folder = folder; }
+    public File getFolder() { return folder; }
 
     // Useful methods for tags
     public void addTag(String tag) { gameTags.add(tag.toLowerCase()); }

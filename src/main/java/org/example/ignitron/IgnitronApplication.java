@@ -10,9 +10,12 @@ import java.io.IOException;
 public class IgnitronApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(IgnitronApplication.class.getResource("UI-Setup.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(
+                getClass().getResource("/org/example/ignitron/MainView.fxml")
+        );
         Scene scene = new Scene(fxmlLoader.load(), 1200, 600);
         stage.setScene(scene);
+        stage.setTitle("Ignitron");
         stage.show();
     }
 
