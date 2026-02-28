@@ -16,6 +16,7 @@ import org.example.ignitron.Game;
 import org.example.ignitron.Library;
 
 import java.io.File;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -81,6 +82,23 @@ public class LibraryController {
         }
     }
 
+    private void playGame(Game game) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(game.getPath());
+            pb.start();
+
+            game.setLastPlayed(LocalDateTime.now());
+
+            // TODO Save library view
+            // library.save()
+            refresh();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
     @FXML
     private void onAddGameClicked() {
 
@@ -89,10 +107,19 @@ public class LibraryController {
             VBox card = new VBox(10);
             card.setStyle("-fx-background-color: #2a2a2a; -fx-padding: 10; -fx-background-radius: 8;");
             card.setPrefSize(150, 200);
+            card.setOnMouseClicked(e -> {
+                // If the user clicked the Play button, do NOT open details
+                if (e.getTarget() instanceof Button) return;
+
+                MainController.getInstance().showGameDetails(game);
+            });
+
 
             ImageView icon = new ImageView();
             icon.setFitWidth(130);
             icon.setFitHeight(130);
+
+
 
             // Load icon if you have one
             if (game.getIcon() != null) {
@@ -105,7 +132,18 @@ public class LibraryController {
             Label name = new Label(game.getName());
             name.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
 
-            card.getChildren().addAll(icon, name);
+            Button playButton = new Button("Play");
+            playButton.setStyle(
+                    "-fx-background-color: #3a3a3a; -fx-text-fill: white; -fx-background-radius: 6;"
+            );
+
+            playButton.setOnAction(e -> {
+                e.consume(); // prevents triggering card click
+                playGame(game);
+            });
+
+
+            card.getChildren().addAll(icon, name, playButton);
 
             return card;
         }

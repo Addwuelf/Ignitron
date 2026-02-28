@@ -8,10 +8,7 @@ import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
-import org.example.ignitron.Game;
-import org.example.ignitron.IconExtractor;
-import org.example.ignitron.IgnitronApplication;
-import org.example.ignitron.Library;
+import org.example.ignitron.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,10 +35,15 @@ public class MainController {
 
     private Library library;
 
+    private static MainController instance;
+
+
 
     public void initialize() {
         library = new Library();
         loadView("/org/example/ignitron/LibraryView.fxml");
+
+
 
 
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -51,6 +53,15 @@ public class MainController {
             }
         });
     }
+
+    public MainController() {
+        instance = this;
+    }
+
+    public static MainController getInstance() {
+        return instance;
+    }
+
     private void loadView(String path) {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(IgnitronApplication.class.getResource(path));
@@ -69,6 +80,27 @@ public class MainController {
             e.printStackTrace();
         }
     }
+
+    public void showGameDetails(Game game) {
+        try {
+            FXMLLoader loader = new FXMLLoader(IgnitronApplication.class.getResource(
+                    "/org/example/ignitron/GameDetailsView.fxml"
+            ));
+
+            Node view = loader.load();
+
+            // Get the controller for the game detail view
+            GameDetailsController detailsController = loader.getController();
+            detailsController.setGame(game);
+
+            contentArea.getChildren().setAll(view);
+
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     private LibraryController getCurrentController() {
         if (contentArea.getChildren().isEmpty()) return null;
@@ -91,17 +123,39 @@ public class MainController {
 
         if (folder != null) {
             ArrayList<File> executables = scanFolderForExecutables(folder);
+
             handleExecutables(executables, folder);
         }
 
     }
 
+    private void scanGameFolder(File folder) {
+        ArrayList<File> foundFiles = new ArrayList<>();
+        for (File file : folder.listFiles()) {
+            if (file.getName().endsWith(".exe")) {
+                foundFiles.add(file);
+            }
+            else if (file.isDirectory()) {
+                scanGameFolder(file);
+            }
+        }
+
+    }
+
+
     // Scans folder to search for all .exe files
     private ArrayList<File> scanFolderForExecutables (File folder) {
         ArrayList<File> executables = new ArrayList<>();
+
         for (File file : folder.listFiles()) {
+
+            // Check if folder is a game exe first
             if (file.getName().endsWith(".exe")) {
                 executables.add(file);
+            }
+            // If file wasn't a exe checks if file is a folder we need to scan
+            else if (file.isDirectory()) {
+                scanFolderForExecutables(file);
             }
         }
         return executables;
@@ -134,8 +188,14 @@ public class MainController {
             String gameName = new File(file.getPath()).getName().replace(".exe", "");
             game.setName(gameName);
 
-            Image icon = IconExtractor.extract32Icon(file.getPath());
+            Image icon = null;
+
+            icon = IconExtractor.extract32Icon(file.getPath());
+
+
+
             game.setIcon(icon);
+
 
             if (getCurrentController() != null) {
                 getCurrentController().addGameToLibrary(game);
@@ -177,6 +237,8 @@ public class MainController {
         Optional<List<File>> result = dialog.showAndWait();
         return (ArrayList<File>) result.orElse(null);
     }
+
+
 
 
     @FXML

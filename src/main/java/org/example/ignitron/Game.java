@@ -14,7 +14,7 @@ public class Game {
     private String path;
     private Image icon;
     private Set<String> gameTags = new HashSet<String>();
-    private int playTime;
+    private int playTime;  // Total minutes played
     private LocalDateTime lastPlayed;
     private String launcher;
     private File folder;
