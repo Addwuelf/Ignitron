@@ -4,6 +4,10 @@ Ignitron is a modern desktop game launcher built with JavaFX. It focuses on clea
 
 ---
 
+## 🚧 Development Status
+
+Ignitron is currently in active development. The launcher is functional, but many features are still being refined or expanded.
+
 ## ✨ Features
 
 - **Clean, modern UI** — built with JavaFX for smooth animations and responsive layouts.
