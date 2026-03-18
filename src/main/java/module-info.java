@@ -7,6 +7,7 @@ module org.example.ignitron {
     requires javafx.swing;
     requires com.sun.jna;
     requires com.google.gson;
+    requires java.logging;
 
     opens org.example.ignitron;
     opens org.example.ignitron.controllers to javafx.fxml;
