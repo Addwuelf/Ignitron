@@ -12,12 +12,15 @@ public class Game {
 
     private String name;
     private String path;
-    private Image icon;
+    private transient Image icon;
+    private String iconPath;
     private Set<String> gameTags = new HashSet<String>();
     private int playTime;  // Total minutes played
     private LocalDateTime lastPlayed;
     private String launcher;
-    private File folder;
+    private transient File folder;
+
+  public Game() {}
 
   public Game(String name, String path, Image icon, Set<String> gameTags, int playTime, LocalDateTime lastPlayed, String launcher) {
         this.name = name;
@@ -41,8 +44,19 @@ public class Game {
     public String getPath() { return path; }
     public void setPath(String path) { this.path = path; }
 
-    public Image getIcon() { return icon; }
+    public Image getIcon() {
+      if (icon == null && iconPath != null) {
+          File file = new File(iconPath);
+          if (file.exists()) {
+              icon = new Image(file.toURI().toString());
+          }
+      }
+      return icon;
+    }
     public void setIcon(Image icon) { this.icon = icon; }
+
+    public String getIconPath() { return iconPath; }
+    public void setIconPath(String iconPath) { this.iconPath = iconPath; }
 
     public Set<String> getGameTags() { return gameTags; }
     public void setGameTags(Set<String> gameTags) { this.gameTags = gameTags; }

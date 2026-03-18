@@ -14,6 +14,7 @@ import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.example.ignitron.Game;
 import org.example.ignitron.Library;
+import org.example.ignitron.LibraryStorage;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -36,13 +37,7 @@ public class LibraryController {
 
 
     public void initialize() {
-        library = new Library();
-
         gameGrid.getChildren().clear();
-        for (Game game : library.getGames()) {
-            Node card = createGameCard(game);
-            gameGrid.getChildren().add(card);
-        }
     }
 
     public void setLibrary (Library library) {
@@ -55,6 +50,7 @@ public class LibraryController {
 
         if (library != null) {
             for (Game game : library.getGames()) {
+
                 Node card = createGameCard(game);
                 gameGrid.getChildren().add(card);
             }
@@ -78,9 +74,17 @@ public class LibraryController {
     public void addGameToLibrary(Game game) {
         if (library != null) {
             library.addGame(game);
+            LibraryStorage.saveLibrary(library.getGames());
             refresh();
         }
     }
+
+    public void removeGame(Game game) {
+        library.removeGame(game);
+        LibraryStorage.saveLibrary(library.getGames());
+        refresh();
+    }
+
 
     private void playGame(Game game) {
         try {

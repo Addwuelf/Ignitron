@@ -40,10 +40,15 @@ public class MainController {
 
 
     public void initialize() {
+        // Load saved library from disk
+        List<Game> savedGames = LibraryStorage.loadLibrary();
         library = new Library();
+        for (Game game : savedGames) {
+            library.addGame(game);
+        }
+
+        // Load the default view
         loadView("/org/example/ignitron/LibraryView.fxml");
-
-
 
 
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -177,6 +182,9 @@ public class MainController {
             Image icon = IconExtractor.extract32Icon(file.getPath());
             game.setIcon(icon);
 
+            String iconPath = IconExtractor.saveIconToFile(icon, gameName);
+            game.setIconPath(iconPath);
+
        if (getCurrentController() != null) {
             getCurrentController().addGameToLibrary(game);
         }
@@ -192,9 +200,10 @@ public class MainController {
 
             icon = IconExtractor.extract32Icon(file.getPath());
 
-
-
             game.setIcon(icon);
+
+            String iconPath = IconExtractor.saveIconToFile(icon, gameName);
+            game.setIconPath(iconPath);
 
 
             if (getCurrentController() != null) {

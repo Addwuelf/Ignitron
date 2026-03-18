@@ -5,7 +5,9 @@ import com.sun.jna.platform.win32.*;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.File;
 
 
 public class IconExtractor {
@@ -36,6 +38,24 @@ public class IconExtractor {
 
         return SwingFXUtils.toFXImage(img, null);
     }
+
+    public static String saveIconToFile(Image image, String gameName) {
+        try {
+            File dir = new File(System.getenv("APPDATA"), "Ignitron/icons");
+            dir.mkdirs();
+
+            File file = new File(dir, gameName + ".png");
+
+            BufferedImage bImage = SwingFXUtils.fromFXImage(image, null);
+            ImageIO.write(bImage, "png", file);
+
+            return file.getAbsolutePath();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 
     private static BufferedImage hbitmapToBuffered(WinDef.HBITMAP hBitmap) {
         WinGDI.BITMAP bmp = new WinGDI.BITMAP();
