@@ -13,20 +13,20 @@ public class GameDetector {
         // Step 1: Metadata Extraction
         ExeMetadata data = ExeMetadataReader.read(exePath);
         if (data != null && data.getProductName() != null) {
-            return new DetectedGame(meta.getProductName(), exePath, exePath.getParent(), null, data.toMap());
+            return new DetectedGame(data.getProductName(), exePath, exePath.getParent(), null);
         }
 
-        // Step 2: Launcher Detection
-        LauncherInfo launcher = LauncherDetector.detect(exePath);
-        if (launcher != null) {
-            return new DetectedGame(
-                    launcher.getGameName(),
-                    exePath,
-                    launcher.getInstallFolder(),
-                    launcher.getLauncherName(),
-                    launcher.getMetadata()
-            );
-        }
+//        // Step 2: Launcher Detection
+//        LauncherInfo launcher = LauncherDetector.detect(exePath);
+//        if (launcher != null) {
+//            return new DetectedGame(
+//                    launcher.getGameName(),
+//                    exePath,
+//                    launcher.getInstallFolder(),
+//                    launcher.getLauncherName(),
+//                    launcher.getMetadata()
+//            );
+//        }
         return  null;
     }
 }

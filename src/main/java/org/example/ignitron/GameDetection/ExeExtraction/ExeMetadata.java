@@ -6,4 +6,6 @@ public class ExeMetadata {
     public String companyName;
     public String productVersion;
     public String fileVersion;
+
+    public String getProductName() {return productName;}
 }
