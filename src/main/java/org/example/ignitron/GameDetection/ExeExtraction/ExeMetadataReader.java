@@ -62,14 +62,14 @@ public class ExeMetadataReader {
         // Query Individual Fields
         ExeMetadata data = new ExeMetadata();
 
-        data.productName = queryString(buffer, block, "ProductName");
+        data.setProductName(queryString(buffer, block, "ProductName"));
         data.fileDescription = queryString(buffer, block, "FileDescription");
         data.companyName = queryString(buffer, block, "CompanyName");
         data.productVersion = queryString(buffer, block, "ProductVersion");
         data.fileVersion = queryString(buffer, block, "FileVersion");
 
         Log.info("Metadata extracted: " +
-                "ProductName=" + data.productName + ", " +
+                "ProductName=" + data.getProductName() + ", " +
                 "FileDescription=" + data.fileDescription + ", " +
                 "CompanyName=" + data.companyName + ", " +
                 "ProductVersion=" + data.productVersion + ", " +

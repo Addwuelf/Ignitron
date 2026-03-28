@@ -2,31 +2,34 @@ package org.example.ignitron.GameDetection;
 
 import org.example.ignitron.GameDetection.ExeExtraction.ExeMetadata;
 import org.example.ignitron.GameDetection.ExeExtraction.ExeMetadataReader;
+import org.example.ignitron.GameDetection.steam.SteamDetector;
+import org.example.ignitron.GameDetection.steam.SteamGameLocation;
+import org.example.ignitron.Log;
 
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 
 public class GameDetector {
 
-    public DetectedGame detectedGame(Path exePath) {
+    public LauncherInfo detectedGame(Path exePath) throws IOException {
         // TODO create pipline steps
+
+        // 1. Try Steam
+        LauncherInfo steam = SteamDetector.detectSteamGame(exePath);
+        if (steam != null) {
+            return steam;
+        }
+
 
         // Step 1: Metadata Extraction
         ExeMetadata data = ExeMetadataReader.read(exePath);
         if (data != null && data.getProductName() != null) {
-            return new DetectedGame(data.getProductName(), exePath, exePath.getParent(), null);
+           LauncherInfo info = new LauncherInfo("Unknown", data.getProductName(), exePath.getParent());
+           info.setMetadata(Map.of("source", "exe-metadata"));
+           return info;
         }
 
-//        // Step 2: Launcher Detection
-//        LauncherInfo launcher = LauncherDetector.detect(exePath);
-//        if (launcher != null) {
-//            return new DetectedGame(
-//                    launcher.getGameName(),
-//                    exePath,
-//                    launcher.getInstallFolder(),
-//                    launcher.getLauncherName(),
-//                    launcher.getMetadata()
-//            );
-//        }
-        return  null;
+        return null;
     }
 }

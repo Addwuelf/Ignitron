@@ -151,9 +151,4 @@ public class LibraryController {
 
             return card;
         }
-
-
-
-
-
 }
