@@ -16,6 +16,8 @@ public class IgnitronApplication extends Application {
         Scene scene = new Scene(fxmlLoader.load(), 1200, 600);
         stage.setScene(scene);
         stage.setTitle("Ignitron");
+        stage.setMinWidth(900);
+        stage.setMinHeight(800);
         stage.show();
     }
 

@@ -29,8 +29,6 @@ public class SteamManifestParser {
     }
 
     private static SteamManifest parseManifest(Path file) {
-        // you will implement:
-        // - read lines
         SteamManifest manifest = new SteamManifest();
 
         try (BufferedReader reader = Files.newBufferedReader(file)) {
@@ -51,14 +49,14 @@ public class SteamManifestParser {
             }
         }
         catch (Exception e) {
-            Log.error("Failed to pars manifest: " + file, e);
+            Log.error("Failed to parse manifest: " + file, e);
         }
 
         // - extract "name" and "installdir"
         if (manifest.getInstallDir() != null) {
             Log.info("Parsed manifest: " + manifest.getAppId() + " - " + manifest.getName() + " - " + manifest.getInstallDir());
         }
-        return null;
+        return manifest;
     }
 
     private static String extractValue(String line, int keyLength) {

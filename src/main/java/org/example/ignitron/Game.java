@@ -1,10 +1,10 @@
 package org.example.ignitron;
 
 import javafx.scene.image.Image;
+import org.example.ignitron.GameDetection.LauncherInfo;
 
 import java.io.File;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.time.LocalDateTime;
 
 
@@ -19,6 +19,7 @@ public class Game {
     private LocalDateTime lastPlayed;
     private String launcher;
     private transient File folder;
+    private Map<String, String> metadata;
 
   public Game() {}
 
@@ -53,6 +54,14 @@ public class Game {
       }
       return icon;
     }
+
+    public void infoToGameObject(LauncherInfo info) {
+      this.name = info.gameName;
+      this.launcher = info.launcherName;
+      this.folder = info.installFolder.toFile();
+        this.metadata = info.metadata;
+    }
+
     public void setIcon(Image icon) { this.icon = icon; }
 
     public String getIconPath() { return iconPath; }

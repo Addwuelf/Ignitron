@@ -11,14 +11,18 @@ import java.util.Map;
 
 public class SteamDetector {
 
-    private static final Path DEFAULT_STEAM =
-            Path.of("C:/Program Files (x86)/Steam");
+    private final Path steamRoot;
 
-    public static SteamGameLocation findSteamGame(Path exePath) throws IOException {
-        List<Path> libraries = LibraryParser.getSteamLibraries(DEFAULT_STEAM);
+    public SteamDetector(Path steamRoot) {
+        this.steamRoot = steamRoot;
+    }
+
+    public SteamGameLocation findSteamGame(Path exePath) throws IOException {
+        List<Path> libraries = LibraryParser.getSteamLibraries(steamRoot);
 
         for (Path library : libraries) {
-            Path common = library.resolve("common");
+            Path common = library.resolve("steamapps/common");
+
 
             if (exePath.startsWith(common)) {
                 // we found the correct library
@@ -27,7 +31,7 @@ public class SteamDetector {
                 Path gameFolder = common.resolve(gameFolderName);
 
                 SteamGameLocation location = new SteamGameLocation();
-                location.libraryPath = library;
+                location.libraryPath = library.resolve("steamapps");
                 location.commonPath = common;
                 location.gameFolder = gameFolder;
 
@@ -39,7 +43,7 @@ public class SteamDetector {
         return null;
     }
 
-    public static LauncherInfo detectSteamGame(Path exePath) throws IOException {
+    public LauncherInfo detectSteamGame(Path exePath) throws IOException {
         SteamGameLocation location = findSteamGame(exePath);
         if (location == null) {
             return null;
@@ -49,7 +53,7 @@ public class SteamDetector {
 
         for (SteamManifest manifest : manifests) {
             if (manifest != null &&
-                    manifest.getInstallDir().equalsIgnoreCase(location.gameFolder.toString())) {
+                    manifest.getInstallDir().equalsIgnoreCase(location.gameFolder.getFileName().toString())) {
                 LauncherInfo info = new LauncherInfo("steam", manifest.getName(), location.gameFolder);
                 info.setMetadata(Map.of(
                         "appid", manifest.getAppId(),

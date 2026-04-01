@@ -12,18 +12,28 @@ import java.util.Map;
 
 public class GameDetector {
 
+    private final SteamDetector steamDetector;
+    private final ExeMetadataReader metadata;
+
+    public GameDetector(SteamDetector steamDetector, ExeMetadataReader metadata) {
+        this.steamDetector = steamDetector;
+        this.metadata = metadata;
+    }
+
+
+
     public LauncherInfo detectedGame(Path exePath) throws IOException {
         // TODO create pipline steps
 
         // 1. Try Steam
-        LauncherInfo steam = SteamDetector.detectSteamGame(exePath);
+        LauncherInfo steam = steamDetector.detectSteamGame(exePath);
         if (steam != null) {
             return steam;
         }
 
 
-        // Step 1: Metadata Extraction
-        ExeMetadata data = ExeMetadataReader.read(exePath);
+        // Step 2: Metadata Extraction
+        ExeMetadata data = metadata.read(exePath);
         if (data != null && data.getProductName() != null) {
            LauncherInfo info = new LauncherInfo("Unknown", data.getProductName(), exePath.getParent());
            info.setMetadata(Map.of("source", "exe-metadata"));

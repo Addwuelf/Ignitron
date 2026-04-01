@@ -84,6 +84,11 @@ public class GameDetailsController {
         }
     }
 
+    @FXML
+    private void onBackClicked(ActionEvent event) {
+        MainController.getInstance().loadView("/org/example/ignitron/LibraryView.fxml");
+    }
+
     private void updateLastPlayed() {
         if (currentGame == null) {
             // No game selected

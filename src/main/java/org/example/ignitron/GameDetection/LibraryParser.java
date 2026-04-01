@@ -11,15 +11,15 @@ import java.util.List;
 
 public class LibraryParser {
 
-    public static List<Path> getSteamLibraries(Path path) throws IOException {
-        Path steamLibraryPath = path.resolve("steamapps/libraryfolders.vdf");
+    public static List<Path> getSteamLibraries(Path steamRoot) throws IOException {
+        Path steamLibraryPath = steamRoot.resolve("steamapps/libraryfolders.vdf");
 
         List<Path> paths = new ArrayList<>();
 
-        Log.info("Scanning Steam Library file: " + path);
+        Log.info("Scanning Steam Library file: " + steamRoot);
 
         // Create a new BufferedReader using path
-        try (BufferedReader reader = Files.newBufferedReader(path)) {
+        try (BufferedReader reader = Files.newBufferedReader(steamLibraryPath)) {
             String line;
 
             //loop until end of file
@@ -48,7 +48,7 @@ public class LibraryParser {
             }
         }
         catch (IOException e) {
-            Log.error("Failed to read Steam Library File: " + path, e);
+            Log.error("Failed to read Steam Library File: " + steamRoot, e);
         }
 
         return paths;

@@ -9,12 +9,20 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.example.ignitron.*;
+import org.example.ignitron.GameDetection.ExeExtraction.ExeMetadataReader;
+import org.example.ignitron.GameDetection.GameDetector;
+import org.example.ignitron.GameDetection.LauncherInfo;
+import org.example.ignitron.GameDetection.steam.SteamDetector;
+import org.example.ignitron.GameDetection.steam.SteamRegistryReader;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Stack;
 
 
 public class MainController {
@@ -30,13 +38,20 @@ public class MainController {
     @FXML
     private StackPane contentArea;
 
-    @FXML private Button addGameButton;
+    @FXML
+    private Button addGameButton;
 
 
     private Library library;
 
     private static MainController instance;
 
+    Path steamPath = SteamRegistryReader.getSteamPath();
+
+    GameDetector gameDetector = new GameDetector(
+        new SteamDetector(steamPath),
+        new ExeMetadataReader()
+);
 
 
     public void initialize() {
@@ -67,7 +82,7 @@ public class MainController {
         return instance;
     }
 
-    private void loadView(String path) {
+    public void loadView(String path) {
         try {
             FXMLLoader fxmlLoader = new FXMLLoader(IgnitronApplication.class.getResource(path));
             Node view = fxmlLoader.load();
@@ -100,8 +115,7 @@ public class MainController {
 
             contentArea.getChildren().setAll(view);
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -139,8 +153,7 @@ public class MainController {
         for (File file : folder.listFiles()) {
             if (file.getName().endsWith(".exe")) {
                 foundFiles.add(file);
-            }
-            else if (file.isDirectory()) {
+            } else if (file.isDirectory()) {
                 scanGameFolder(file);
             }
         }
@@ -149,68 +162,84 @@ public class MainController {
 
 
     // Scans folder to search for all .exe files
-    private ArrayList<File> scanFolderForExecutables (File folder) {
+    private ArrayList<File> scanFolderForExecutables(File folder) {
         ArrayList<File> executables = new ArrayList<>();
+        Stack<File> stack = new Stack<>();
+        stack.push(folder);
 
-        for (File file : folder.listFiles()) {
+        while (!stack.isEmpty()) {
+            File current = stack.pop();
 
-            // Check if folder is a game exe first
-            if (file.getName().endsWith(".exe")) {
-                executables.add(file);
-            }
-            // If file wasn't a exe checks if file is a folder we need to scan
-            else if (file.isDirectory()) {
-                scanFolderForExecutables(file);
+            for (File file : current.listFiles()) {
+                if (file.getName().endsWith(".exe")) {
+                    executables.add(file);
+                } else if (file.isDirectory()) {
+                    stack.push(file);
+                }
             }
         }
+
         return executables;
     }
 
+
+    private void importDetectedGame(File exeFile) {
+       try {
+           LauncherInfo info = gameDetector.detectedGame(exeFile.toPath());
+           Game game = new Game();
+
+           if (info != null) {
+               // Use Detection Pipline
+               game.infoToGameObject(info);
+               game.setPath(exeFile.getPath());
+           }
+           else {
+               // Fallback: generic game
+               game = new Game(exeFile.getPath(), exeFile.getParentFile());
+               String name = exeFile.getName().replace(".exe", "");
+               game.setName(name);
+           }
+
+           // Icon Extraction
+           Image icon = IconExtractor.extract32Icon(exeFile.getPath());
+           game.setIcon(icon);
+           game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
+
+           // Add to Library
+           if (getCurrentController() != null) {
+               getCurrentController().addGameToLibrary(game);
+           }
+
+       } catch (IOException e) {
+           Log.error("Error importing Game through game detector", e);
+       }
+
+    }
+
     // Determines what to do with exe files. If not empty adds to library
-    private void handleExecutables (ArrayList<File> executables, File folder) {
+    private void handleExecutables(ArrayList<File> executables, File folder) {
         if (executables.isEmpty()) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("No Executables Found");
-        alert.setHeaderText("This folder does not contain any .exe files");
-    }
-    else if (executables.size() == 1) {
-       File file = executables.get(0);
-       Game game = new Game(file.getPath(), folder);
-       String gameName = new File(file.getPath()).getName().replace(".exe", "");
-       game.setName(gameName);
-
-            Image icon = IconExtractor.extract32Icon(file.getPath());
-            game.setIcon(icon);
-
-            String iconPath = IconExtractor.saveIconToFile(icon, gameName);
-            game.setIconPath(iconPath);
-
-       if (getCurrentController() != null) {
-            getCurrentController().addGameToLibrary(game);
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("No Executables Found");
+            alert.setHeaderText("This folder does not contain any .exe files");
+            alert.show();
+            return;
         }
-    }
-    else {
+
+        if (executables.size() == 1) {
+            File file = executables.get(0);
+            importDetectedGame(file);
+            return;
+        }
+
         ArrayList<File> chosenGames = showMultiSelectExeDialog(executables);
+
         for (File file : chosenGames) {
-            Game game = new Game(file.getPath(), folder);
-            String gameName = new File(file.getPath()).getName().replace(".exe", "");
-            game.setName(gameName);
-
-            Image icon = null;
-
-            icon = IconExtractor.extract32Icon(file.getPath());
-
-            game.setIcon(icon);
-
-            String iconPath = IconExtractor.saveIconToFile(icon, gameName);
-            game.setIconPath(iconPath);
-
-
-            if (getCurrentController() != null) {
-                getCurrentController().addGameToLibrary(game);
+            if (file != null) {
+                importDetectedGame(file);
             }
         }
-    }
+
     }
 
     private ArrayList<File> showMultiSelectExeDialog(List<File> executables) {
@@ -248,8 +277,6 @@ public class MainController {
     }
 
 
-
-
     @FXML
     private void onLibraryClicked() {
         loadView("org/example/ignitron/LibraryView.fxml");
@@ -259,7 +286,6 @@ public class MainController {
     private void onSettingsClicked() {
         loadView("org/example/ignitron/SettingsView.fxml");
     }
-
 
 
 }
