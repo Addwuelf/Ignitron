@@ -17,8 +17,8 @@ import org.example.ignitron.GameDetection.steam.SteamRegistryReader;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -164,22 +164,145 @@ public class MainController {
     // Scans folder to search for all .exe files
     private ArrayList<File> scanFolderForExecutables(File folder) {
         ArrayList<File> executables = new ArrayList<>();
-        Stack<File> stack = new Stack<>();
-        stack.push(folder);
 
-        while (!stack.isEmpty()) {
-            File current = stack.pop();
+        // Safety: null folder
+        if (folder == null) {
+            Log.info("Folder is null");
+            return executables;
+        }
 
-            for (File file : current.listFiles()) {
-                if (file.getName().endsWith(".exe")) {
-                    executables.add(file);
-                } else if (file.isDirectory()) {
-                    stack.push(file);
+        // Prevent scanning system roots (Windows, Program Files, etc.)
+        if (isSkippedRoot(folder)) {
+            Log.info("Skipping root folder: " + folder.getAbsolutePath());
+            return executables;
+        }
+
+        Path startPath = folder.toPath();
+
+        try {
+            Files.walkFileTree(startPath, new SimpleFileVisitor<Path>() {
+
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                    File f = dir.toFile();
+
+                    // Skip redistributables, huge folders, unreadable folders
+                    if (shouldSkipFolder(f)) {
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
+
+                    return FileVisitResult.CONTINUE;
                 }
-            }
+
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    File f = file.toFile();
+                    String name = f.getName().toLowerCase();
+
+                    // Only consider .exe files
+                    if (name.endsWith(".exe")) {
+                        if (!shouldSkipExe(f)) {
+                            Log.info("Found executable: " + f.getAbsolutePath());
+                            executables.add(f);
+                        }
+                    }
+
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                    // Skip unreadable files silently
+                    return FileVisitResult.CONTINUE;
+                }
+
+            });
+
+        } catch (IOException e) {
+            Log.error("Error scanning folder: " + folder.getAbsolutePath(), e);
         }
 
         return executables;
+    }
+
+    private boolean isSkippedRoot(File folder) {
+        if (folder == null) return true;
+
+        String path = folder.getAbsolutePath().toLowerCase();
+
+        // Skip system roots only when the user selects them directly
+        return path.equals("c:\\windows")
+                || path.equals("c:\\program files")
+                || path.equals("c:\\program files (x86)")
+                || path.equals("c:\\programdata")
+                || path.contains("\\appdata")
+                || path.contains("$recycle.bin");
+    }
+
+    private boolean shouldSkipFolder(File folder) {
+        if (folder == null) return true;
+
+        String path = folder.getAbsolutePath().toLowerCase();
+        String name = folder.getName().toLowerCase();
+
+        // Skip system folders anywhere in the tree
+        if (path.contains("\\windows")) return true;
+        if (path.contains("\\program files")) return true;
+        if (path.contains("\\program files (x86)")) return true;
+        if (path.contains("\\programdata")) return true;
+        if (path.contains("\\appdata")) return true;
+        if (path.contains("$recycle.bin")) return true;
+
+        // Skip redistributable folders
+        String[] skipNames = {
+                "commonredist", "redist", "redistributables",
+                "directx", "dxredist", "_installer",
+                "support", "prereqs", "vcredist"
+        };
+
+        for (String skip : skipNames) {
+            if (name.contains(skip)) return true;
+        }
+
+        // Skip unreadable or huge folders
+        File[] children = folder.listFiles();
+        if (children == null) return true;
+        if (children.length > 500) return true;
+
+        return false;
+    }
+
+    private boolean shouldSkipExe(File file) {
+        if (file == null) return true;
+
+        String name = file.getName().toLowerCase();
+
+        if (file.length() < 1_000_000) return true; // < 1 MB
+
+        // Skip known junk EXEs
+        String[] skipNames = {
+                "setup", "install", "uninstall",
+                "vc_redist", "dxsetup", "bootstrapper",
+                "unitycrashhandler", "crashreport", "crashhandler",
+                "beservice", "_be",
+        };
+
+        for (String skip : skipNames) {
+            if (name.contains(skip)) return true;
+        }
+
+        // Skip helper/launcher tools
+        String[] skipKeywords = {
+                "launcher", "updater", "helper",
+                "tool", "editor", "benchmark",
+                "config", "settings"
+        };
+
+        for (String skip : skipKeywords) {
+            if (name.contains(skip)) return true;
+        }
+
+        return false;
     }
 
 
