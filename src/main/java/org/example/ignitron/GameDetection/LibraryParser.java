@@ -11,7 +11,9 @@ import java.util.List;
 
 public class LibraryParser {
 
+    // Returns the path of installed libraries
     public static List<Path> getSteamLibraries(Path steamRoot) throws IOException {
+
         Path steamLibraryPath = steamRoot.resolve("steamapps/libraryfolders.vdf");
 
         List<Path> paths = new ArrayList<>();

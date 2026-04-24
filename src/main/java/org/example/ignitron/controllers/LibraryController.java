@@ -38,6 +38,7 @@ public class LibraryController {
 
     public void initialize() {
         gameGrid.getChildren().clear();
+        MainController.getInstance().autoAddGames();
     }
 
     public void setLibrary (Library library) {

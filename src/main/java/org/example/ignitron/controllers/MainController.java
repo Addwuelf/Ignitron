@@ -19,10 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Stack;
+import java.util.*;
 
 
 public class MainController {
@@ -48,6 +45,8 @@ public class MainController {
 
     Path steamPath = SteamRegistryReader.getSteamPath();
 
+    SteamDetector steamDetector;
+
     GameDetector gameDetector = new GameDetector(
         new SteamDetector(steamPath),
         new ExeMetadataReader()
@@ -58,13 +57,16 @@ public class MainController {
         // Load saved library from disk
         List<Game> savedGames = LibraryStorage.loadLibrary();
         library = new Library();
+
+        steamDetector = new SteamDetector(steamPath);
+
         for (Game game : savedGames) {
             library.addGame(game);
         }
 
+
         // Load the default view
         loadView("/org/example/ignitron/LibraryView.fxml");
-
 
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
             LibraryController controller = getCurrentController();
@@ -133,6 +135,7 @@ public class MainController {
         return null;
     }
 
+    // Manual, User has to pick folder to scan
     @FXML
     private void onAddGameClicked() {
         // Open Directory chooser dialog so user can pick folder to scan
@@ -145,7 +148,28 @@ public class MainController {
 
             handleExecutables(executables, folder);
         }
+    }
 
+    // On launch add all games automatically
+    // Currently only Steam
+    public void autoAddGames() {
+
+       List<Game> gameList = steamDetector.detectAllSteamGames();
+       for (Game game : gameList) {
+
+           if(Objects.equals(game.getName(), "Steamworks Common Redistributables")) continue;
+
+           // Icon Extraction
+           if(game.getPath() != null) {
+               File exeFile = new File(game.getPath());
+               Image icon = IconExtractor.extract32Icon(exeFile.getPath());
+               game.setIcon(icon);
+               game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
+           }
+
+           library.addGame(game);
+       }
+       LibraryStorage.saveLibrary(library.getGames());
     }
 
     private void scanGameFolder(File folder) {
@@ -157,12 +181,11 @@ public class MainController {
                 scanGameFolder(file);
             }
         }
-
     }
 
 
     // Scans folder to search for all .exe files
-    private ArrayList<File> scanFolderForExecutables(File folder) {
+    public ArrayList<File> scanFolderForExecutables(File folder) {
         ArrayList<File> executables = new ArrayList<>();
 
         // Safety: null folder
@@ -247,8 +270,6 @@ public class MainController {
 
         // Skip system folders anywhere in the tree
         if (path.contains("\\windows")) return true;
-        if (path.contains("\\program files")) return true;
-        if (path.contains("\\program files (x86)")) return true;
         if (path.contains("\\programdata")) return true;
         if (path.contains("\\appdata")) return true;
         if (path.contains("$recycle.bin")) return true;
@@ -257,7 +278,7 @@ public class MainController {
         String[] skipNames = {
                 "commonredist", "redist", "redistributables",
                 "directx", "dxredist", "_installer",
-                "support", "prereqs", "vcredist"
+                "support", "prereqs", "vcredist", "crashreport"
         };
 
         for (String skip : skipNames) {
@@ -284,7 +305,7 @@ public class MainController {
                 "setup", "install", "uninstall",
                 "vc_redist", "dxsetup", "bootstrapper",
                 "unitycrashhandler", "crashreport", "crashhandler",
-                "beservice", "_be",
+                "beservice", "_be", "ui"
         };
 
         for (String skip : skipNames) {
@@ -295,7 +316,7 @@ public class MainController {
         String[] skipKeywords = {
                 "launcher", "updater", "helper",
                 "tool", "editor", "benchmark",
-                "config", "settings"
+                "config", "compile", "util","settings"
         };
 
         for (String skip : skipKeywords) {

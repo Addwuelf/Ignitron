@@ -59,7 +59,7 @@ public class Game {
       this.name = info.gameName;
       this.launcher = info.launcherName;
       this.folder = info.installFolder.toFile();
-        this.metadata = info.metadata;
+      this.metadata = info.metadata;
     }
 
     public void setIcon(Image icon) { this.icon = icon; }
