@@ -88,7 +88,7 @@ public class SteamDetector {
 
                     Path gameFolder = steamApps.resolve("common").resolve(manifest.getInstallDir());
 
-                    ArrayList<File> gameExes = MainController.getInstance().scanFolderForExecutables(gameFolder.toFile());
+                    ArrayList<File> gameExes = MainController.getInstance().scanFolderForExecutables(gameFolder.toFile(), manifest.getName());
 
                     LauncherInfo info = new LauncherInfo("steam", manifest.getName(), gameFolder);
 

@@ -144,7 +144,7 @@ public class MainController {
         File folder = directoryChooser.showDialog(stage);
 
         if (folder != null) {
-            ArrayList<File> executables = scanFolderForExecutables(folder);
+            ArrayList<File> executables = scanFolderForExecutables(folder, "Manually Added Game");
 
             handleExecutables(executables, folder);
         }
@@ -185,7 +185,7 @@ public class MainController {
 
 
     // Scans folder to search for all .exe files
-    public ArrayList<File> scanFolderForExecutables(File folder) {
+    public ArrayList<File> scanFolderForExecutables(File folder, String manGameName) {
         ArrayList<File> executables = new ArrayList<>();
 
         // Safety: null folder
@@ -224,7 +224,7 @@ public class MainController {
 
                     // Only consider .exe files
                     if (name.endsWith(".exe")) {
-                        if (!shouldSkipExe(f)) {
+                        if (!shouldSkipExe(f, manGameName)) {
                             Log.info("Found executable: " + f.getAbsolutePath());
                             executables.add(f);
                         }
@@ -288,17 +288,33 @@ public class MainController {
         // Skip unreadable or huge folders
         File[] children = folder.listFiles();
         if (children == null) return true;
-        if (children.length > 500) return true;
 
         return false;
     }
 
-    private boolean shouldSkipExe(File file) {
+    private boolean shouldSkipExe(File file, String manGameName) {
         if (file == null) return true;
 
         String name = file.getName().toLowerCase();
 
-        if (file.length() < 1_000_000) return true; // < 1 MB
+        // Skip tiny EXEs unless they look like the real game
+        if (file.length() < 1_000_000) {
+            String gameName = file.getName().toLowerCase();
+
+            // Allow small EXEs that contain the game name
+            if (gameName.contains("factorygame") || gameName.contains(manGameName.toLowerCase()) || gameName.contains(file.getParentFile().getName().toLowerCase())) {
+                return false;
+            }
+
+            // Allow small EXEs that are in common game folders
+            String parent = file.getParentFile().getName().toLowerCase();
+            if (parent.contains("win64") || parent.contains("win32") || parent.contains("binaries")) {
+                return false;
+            }
+
+            // Otherwise skip small EXEs
+            return true;
+        }
 
         // Skip known junk EXEs
         String[] skipNames = {
@@ -347,8 +363,9 @@ public class MainController {
            // Icon Extraction
            Image icon = IconExtractor.extract32Icon(exeFile.getPath());
            game.setIcon(icon);
-           game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
-
+           if (icon == null) {
+               game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
+           }
            // Add to Library
            if (getCurrentController() != null) {
                getCurrentController().addGameToLibrary(game);

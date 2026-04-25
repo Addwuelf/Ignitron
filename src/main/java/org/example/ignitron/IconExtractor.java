@@ -8,6 +8,7 @@ import javafx.scene.image.Image;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.InputStream;
 
 
 public class IconExtractor {
@@ -45,6 +46,20 @@ public class IconExtractor {
             dir.mkdirs();
 
             File file = new File(dir, gameName + ".png");
+
+            // If icon extraction failed → use default icon
+            if (image == null) {
+                Log.info("saveIconToFile: image is null for game " + gameName);
+
+                InputStream stream = IconExtractor.class.getResourceAsStream("/icons/default_game.png");
+
+                if (stream == null) {
+                    Log.error("Default icon missing!", new Exception("!"));
+                    return null;
+                }
+
+                image = new Image(stream);
+            }
 
             BufferedImage bImage = SwingFXUtils.fromFXImage(image, null);
             ImageIO.write(bImage, "png", file);
