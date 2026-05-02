@@ -7,6 +7,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import org.example.ignitron.Game;
+
+import javafx.event.ActionEvent;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -28,10 +30,13 @@ public class GameDetailsController {
     @FXML
     private Button playButton;
 
+    @FXML
+    private Label totalPlaytimeLabel;
+
     private Game currentGame;
 
 
-    private void setGame(Game game) {
+    public void setGame(Game game) {
         this.currentGame = game;
         updateUI();
     }
@@ -39,12 +44,11 @@ public class GameDetailsController {
     private void updateUI() {
         if (currentGame != null) {
             gameName.setText(currentGame.getName());
-            String iconPath = currentGame.getIcon();
+            Image icon = currentGame.getIcon();
 
             // Set game icon
-            if (iconPath != null && !iconPath.isEmpty()) {
-                Image image = new Image(iconPath);
-                gameIcon.setImage(image);
+            if (icon != null) {
+                gameIcon.setImage(icon);
             } else {
                 gameIcon.setImage(null);
             }
@@ -59,7 +63,8 @@ public class GameDetailsController {
         }
     }
 
-    private void onPlayClicked() {
+    @FXML
+    private void onPlayClicked(ActionEvent event) {
         if (currentGame != null) {
             String path = currentGame.getPath();
             ProcessBuilder pb = new ProcessBuilder(path);
@@ -77,6 +82,11 @@ public class GameDetailsController {
                 e.printStackTrace();
             }
         }
+    }
+
+    @FXML
+    private void onBackClicked(ActionEvent event) {
+        MainController.getInstance().loadView("/org/example/ignitron/LibraryView.fxml");
     }
 
     private void updateLastPlayed() {

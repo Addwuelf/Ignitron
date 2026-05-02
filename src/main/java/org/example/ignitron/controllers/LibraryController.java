@@ -12,10 +12,13 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
+import org.example.ignitron.Config;
 import org.example.ignitron.Game;
 import org.example.ignitron.Library;
+import org.example.ignitron.LibraryStorage;
 
 import java.io.File;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -27,6 +30,8 @@ public class LibraryController {
 
     private Library library;
 
+    Config config = Config.load();
+
     @FXML private TextField nameField;
     @FXML private TextField pathField;
     @FXML private TextField iconField;
@@ -35,12 +40,12 @@ public class LibraryController {
 
 
     public void initialize() {
-        library = new Library();
-
         gameGrid.getChildren().clear();
-        for (Game game : library.getGames()) {
-            Node card = createGameCard(game);
-            gameGrid.getChildren().add(card);
+
+        if(!config.isAutoAddDone()) {
+            MainController.getInstance().autoAddGames();
+            config.setAutoAddDone(true);
+            config.save();
         }
     }
 
@@ -54,6 +59,7 @@ public class LibraryController {
 
         if (library != null) {
             for (Game game : library.getGames()) {
+
                 Node card = createGameCard(game);
                 gameGrid.getChildren().add(card);
             }
@@ -77,9 +83,34 @@ public class LibraryController {
     public void addGameToLibrary(Game game) {
         if (library != null) {
             library.addGame(game);
+            LibraryStorage.saveLibrary(library.getGames());
             refresh();
         }
     }
+
+    public void removeGame(Game game) {
+        library.removeGame(game);
+        LibraryStorage.saveLibrary(library.getGames());
+        refresh();
+    }
+
+
+    private void playGame(Game game) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(game.getPath());
+            pb.start();
+
+            game.setLastPlayed(LocalDateTime.now());
+
+            // TODO Save library view
+            // library.save()
+            refresh();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     @FXML
     private void onAddGameClicked() {
@@ -89,38 +120,44 @@ public class LibraryController {
             VBox card = new VBox(10);
             card.setStyle("-fx-background-color: #2a2a2a; -fx-padding: 10; -fx-background-radius: 8;");
             card.setPrefSize(150, 200);
+            card.setOnMouseClicked(e -> {
+                // If the user clicked the Play button, do NOT open details
+                if (e.getTarget() instanceof Button) return;
+
+                MainController.getInstance().showGameDetails(game);
+            });
+
 
             ImageView icon = new ImageView();
             icon.setFitWidth(130);
             icon.setFitHeight(130);
 
+
+
             // Load icon if you have one
             if (game.getIcon() != null) {
-                icon.setImage(new Image(new File(game.getIcon()).toURI().toString()));
+                icon.setImage(game.getIcon());
+            }
+            else {
+
             }
 
             Label name = new Label(game.getName());
             name.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
 
-            card.getChildren().addAll(icon, name);
+            Button playButton = new Button("Play");
+            playButton.setStyle(
+                    "-fx-background-color: #3a3a3a; -fx-text-fill: white; -fx-background-radius: 6;"
+            );
+
+            playButton.setOnAction(e -> {
+                e.consume(); // prevents triggering card click
+                playGame(game);
+            });
+
+
+            card.getChildren().addAll(icon, name, playButton);
 
             return card;
         }
-
-//        String name = nameField.getText();
-//        String path = pathField.getText();
-//        String icon = iconField.getText();
-//        Set<String> tags = new HashSet<String>(Arrays.asList(tagsField.getText().split(",")));
-//
-//        Game newGame = new Game(name, path, icon, tags);
-//        addGame(newGame);
-//
-//        // Clear fields after adding
-//        nameField.clear();
-//        pathField.clear();
-//        iconField.clear();
-//        tagsField.clear();
-
-
-
 }

@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build jlink image
+        run: mvn -B clean javafx:jlink
+
+      - name: Install WiX Toolset
+        run: choco install wixtoolset -y
+        shell: pwsh
+
+      - name: Create installer
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          # jpackage requires a purely numeric version (e.g. 0.1.0)
+          $version = $tag.TrimStart('v') -replace '-.*', ''
+          jpackage `
+            --app-image target/app `
+            --name Ignitron `
+            --app-version $version `
+            --dest target/installer `
+            --type exe `
+            --win-shortcut `
+            --win-menu
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Ignitron ${{ github.ref_name }}
+          files: target/installer/*.exe
+          draft: true
+          prerelease: true
+          generate_release_notes: true
