@@ -92,6 +92,7 @@ public class MainController {
             // Pass the shared library to controllers that need it
             Object controller = fxmlLoader.getController();
             if (controller instanceof LibraryController libController) {
+
                 libController.setLibrary(library);
             }
             view.setUserData(controller);

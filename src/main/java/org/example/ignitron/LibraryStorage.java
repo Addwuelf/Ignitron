@@ -34,6 +34,7 @@ public class LibraryStorage {
             Files.writeString(LIBRARY_PATH, json);
         }
         catch (Exception e) {
+            Log.error("Failed to save game library!", e);
             e.printStackTrace();
         }
     }
@@ -50,7 +51,7 @@ public class LibraryStorage {
             return gson.fromJson(json, type);
         }
         catch (Exception e) {
-            e.printStackTrace();
+            Log.error("Failed to load game library!", e);
             return new ArrayList<>();
         }
     }

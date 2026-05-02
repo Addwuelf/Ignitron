@@ -12,6 +12,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
+import org.example.ignitron.Config;
 import org.example.ignitron.Game;
 import org.example.ignitron.Library;
 import org.example.ignitron.LibraryStorage;
@@ -29,6 +30,8 @@ public class LibraryController {
 
     private Library library;
 
+    Config config = Config.load();
+
     @FXML private TextField nameField;
     @FXML private TextField pathField;
     @FXML private TextField iconField;
@@ -38,7 +41,12 @@ public class LibraryController {
 
     public void initialize() {
         gameGrid.getChildren().clear();
-        MainController.getInstance().autoAddGames();
+
+        if(!config.isAutoAddDone()) {
+            MainController.getInstance().autoAddGames();
+            config.setAutoAddDone(true);
+            config.save();
+        }
     }
 
     public void setLibrary (Library library) {
