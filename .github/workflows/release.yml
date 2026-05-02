@@ -37,7 +37,8 @@ jobs:
           $tag = "${{ github.ref_name }}"
           # jpackage requires a purely numeric version (e.g. 0.1.0)
           $version = $tag.TrimStart('v') -replace '-.*', ''
-          $projectVersion = (mvn help:evaluate -Dexpression=project.version -q -DforceStdout).Trim()
+          [xml]$pom = Get-Content pom.xml
+          $projectVersion = $pom.project.version
           $mainJar = "Ignitron-$projectVersion.jar"
           Copy-Item "target/$mainJar" "target/lib/"
           jpackage `
