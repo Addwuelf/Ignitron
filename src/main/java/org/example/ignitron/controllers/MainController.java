@@ -175,7 +175,7 @@ public class MainController {
             if (Objects.equals(game.getName(), "Steamworks Common Redistributables")) continue;
 
             // Icon Extraction
-            if (game.getIconPath() != null) {
+            if (game.getPath() != null) {
                 File exeFile = new File(game.getPath());
                 Image icon = IconExtractor.extract32Icon(exeFile.getPath());
                 game.setIcon(icon);
