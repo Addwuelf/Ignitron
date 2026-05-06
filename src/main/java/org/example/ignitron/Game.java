@@ -66,7 +66,6 @@ public class Game {
 
     public String getIconPath() { return iconPath; }
     public void setIconPath(String iconPath) { this.iconPath = iconPath; }
-
     public Set<String> getGameTags() { return gameTags; }
     public void setGameTags(Set<String> gameTags) { this.gameTags = gameTags; }
 

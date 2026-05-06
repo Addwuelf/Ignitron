@@ -12,6 +12,8 @@ import org.example.ignitron.*;
 import org.example.ignitron.GameDetection.ExeExtraction.ExeMetadataReader;
 import org.example.ignitron.GameDetection.GameDetector;
 import org.example.ignitron.GameDetection.LauncherInfo;
+import org.example.ignitron.GameDetection.epic.EpicDetector;
+import org.example.ignitron.GameDetection.epic.EpicPathFinder;
 import org.example.ignitron.GameDetection.steam.SteamDetector;
 import org.example.ignitron.GameDetection.steam.SteamRegistryReader;
 
@@ -44,13 +46,18 @@ public class MainController {
     private static MainController instance;
 
     Path steamPath = SteamRegistryReader.getSteamPath();
+    Path epicPath = EpicPathFinder.getManifestDir();
+
+
 
     SteamDetector steamDetector;
+    EpicDetector epicDetector;
 
     GameDetector gameDetector = new GameDetector(
-        new SteamDetector(steamPath),
-        new ExeMetadataReader()
-);
+            new SteamDetector(steamPath),
+            new ExeMetadataReader(),
+            new EpicDetector(epicPath)
+    );
 
 
     public void initialize() {
@@ -59,6 +66,7 @@ public class MainController {
         library = new Library();
 
         steamDetector = new SteamDetector(steamPath);
+        epicDetector = new EpicDetector(epicPath);
 
         for (Game game : savedGames) {
             library.addGame(game);
@@ -102,6 +110,10 @@ public class MainController {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public Path getEpicPath() {
+        return epicPath;
     }
 
     public void showGameDetails(Game game) {
@@ -152,25 +164,27 @@ public class MainController {
     }
 
     // On launch add all games automatically
-    // Currently only Steam
+    // Currently only Steam and Epic
     public void autoAddGames() {
 
-       List<Game> gameList = steamDetector.detectAllSteamGames();
-       for (Game game : gameList) {
+        List<Game> gameList = new ArrayList<>();
+        gameList.addAll(steamDetector.detectAllSteamGames());
+        gameList.addAll(epicDetector.detectAllEpicGames());
+        for (Game game : gameList) {
 
-           if(Objects.equals(game.getName(), "Steamworks Common Redistributables")) continue;
+            if (Objects.equals(game.getName(), "Steamworks Common Redistributables")) continue;
 
-           // Icon Extraction
-           if(game.getPath() != null) {
-               File exeFile = new File(game.getPath());
-               Image icon = IconExtractor.extract32Icon(exeFile.getPath());
-               game.setIcon(icon);
-               game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
-           }
+            // Icon Extraction
+            if (game.getIconPath() != null) {
+                File exeFile = new File(game.getPath());
+                Image icon = IconExtractor.extract32Icon(exeFile.getPath());
+                game.setIcon(icon);
+                game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
+            }
 
-           library.addGame(game);
-       }
-       LibraryStorage.saveLibrary(library.getGames());
+            library.addGame(game);
+        }
+        LibraryStorage.saveLibrary(library.getGames());
     }
 
     private void scanGameFolder(File folder) {
@@ -333,7 +347,7 @@ public class MainController {
         String[] skipKeywords = {
                 "launcher", "updater", "helper",
                 "tool", "editor", "benchmark",
-                "config", "compile", "util","settings"
+                "config", "compile", "util", "settings"
         };
 
         for (String skip : skipKeywords) {
@@ -345,36 +359,35 @@ public class MainController {
 
 
     private void importDetectedGame(File exeFile) {
-       try {
-           LauncherInfo info = gameDetector.detectedGame(exeFile.toPath());
-           Game game = new Game();
+        try {
+            LauncherInfo info = gameDetector.detectedGame(exeFile.toPath());
+            Game game = new Game();
 
-           if (info != null) {
-               // Use Detection Pipline
-               game.infoToGameObject(info);
-               game.setPath(exeFile.getPath());
-           }
-           else {
-               // Fallback: generic game
-               game = new Game(exeFile.getPath(), exeFile.getParentFile());
-               String name = exeFile.getName().replace(".exe", "");
-               game.setName(name);
-           }
+            if (info != null) {
+                // Use Detection Pipline
+                game.infoToGameObject(info);
+                game.setPath(exeFile.getPath());
+            } else {
+                // Fallback: generic game
+                game = new Game(exeFile.getPath(), exeFile.getParentFile());
+                String name = exeFile.getName().replace(".exe", "");
+                game.setName(name);
+            }
 
-           // Icon Extraction
-           Image icon = IconExtractor.extract32Icon(exeFile.getPath());
-           game.setIcon(icon);
-           if (icon == null) {
-               game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
-           }
-           // Add to Library
-           if (getCurrentController() != null) {
-               getCurrentController().addGameToLibrary(game);
-           }
+            // Icon Extraction
+            Image icon = IconExtractor.extract32Icon(exeFile.getPath());
+            game.setIcon(icon);
+            if (icon == null) {
+                game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
+            }
+            // Add to Library
+            if (getCurrentController() != null) {
+                getCurrentController().addGameToLibrary(game);
+            }
 
-       } catch (IOException e) {
-           Log.error("Error importing Game through game detector", e);
-       }
+        } catch (IOException e) {
+            Log.error("Error importing Game through game detector", e);
+        }
 
     }
 
