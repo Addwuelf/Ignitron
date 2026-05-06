@@ -2,8 +2,7 @@ package org.example.ignitron.GameDetection.epic;
 
 import org.example.ignitron.Game;
 import org.example.ignitron.GameDetection.LauncherInfo;
-import org.example.ignitron.GameDetection.steam.SteamManifest;
-import org.example.ignitron.GameDetection.steam.SteamManifestParser;
+
 import org.example.ignitron.Log;
 
 import java.io.IOException;
@@ -56,7 +55,7 @@ public class EpicDetector {
             // Build game object
             Game game = new Game();
             game.infoToGameObject(info);
-            game.setPath(manifest.getInstallLoaction());
+            game.setPath(manifest.getInstallLoaction() + "\\" + manifest.getLaunchExecutable());
             games.add(game);
         }
 
