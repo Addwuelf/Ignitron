@@ -9,12 +9,18 @@ import java.util.List;
 
 public class CurseForgeDetector {
 
+    // Default CurseForge instances folder on Windows
     private static final String INSTANCES_PATH =
             System.getProperty("user.home") + "/curseforge/minecraft/Instances";
 
+    // Path to the CurseForge app executable — used as the launch target for all instances
     private static final String CURSEFORGE_EXE =
             System.getenv("LOCALAPPDATA") + "/Programs/CurseForge Windows/CurseForge.exe";
 
+    /**
+     * Scans the CurseForge instances directory and returns a Game object for
+     * each valid modpack instance found.
+     */
     public List<Game> detectAllInstances() {
         List<Game> games = new ArrayList<>();
 
@@ -23,6 +29,7 @@ public class CurseForgeDetector {
             return games;
         }
 
+        // Each subfolder in the Instances directory is one modpack instance
         File[] subfolders = instancesDir.listFiles(File::isDirectory);
         if (subfolders == null) {
             return games;
@@ -38,10 +45,15 @@ public class CurseForgeDetector {
         return games;
     }
 
+    /**
+     * Attempts to build a Game object from a single instance folder.
+     * Returns null if the folder is not a valid CurseForge instance.
+     */
     private Game buildGame(File folder) {
         File manifestFile = new File(folder, "manifest.json");
         File instanceFile = new File(folder, "minecraftinstance.json");
 
+        // manifest.json is required — if it's missing this isn't a valid instance
         if (!manifestFile.exists()) {
             return null;
         }
@@ -51,10 +63,12 @@ public class CurseForgeDetector {
             return null;
         }
 
+        // minecraftinstance.json is optional but contains the thumbnail URL
         CurseForgeInstance instance = null;
         if (instanceFile.exists()) {
             instance = CurseForgeParser.parseInstance(instanceFile);
         }
+
 
         Game game = new Game();
         game.setName(manifest.getName());
@@ -63,6 +77,7 @@ public class CurseForgeDetector {
         game.addTag("minecraft");
         game.addTag("curseforge");
 
+        // Add MC version and modloader as tags
         if (manifest.getMinecraft() != null) {
             game.addTag(manifest.getMinecraft().getVersion());
 
@@ -72,15 +87,16 @@ public class CurseForgeDetector {
             }
         }
 
-        // Icon: thumbnail URL from minecraftinstance.json
+        // Primary icon source: thumbnail URL stored in minecraftinstance.json,
+        // fetched from the CurseForge CDN (media.forgecdn.net)
         if (instance != null && instance.getInstalledModpack() != null) {
             String url = instance.getInstalledModpack().getThumbnailUrl();
             if (url != null && !url.isEmpty()) {
-                game.setIcon(new Image(url, true));
+                game.setIcon(new Image(url, true)); // true = load in background
             }
         }
 
-        // Icon fallback: kubejs packicon
+        // Fallback icon: some packs include a packicon.png via the KubeJS mod
         if (game.getIcon() == null) {
             File packIcon = new File(folder, "kubejs/config/packicon.png");
             if (packIcon.exists()) {
@@ -90,6 +106,4 @@ public class CurseForgeDetector {
 
         return game;
     }
-
-
 }
