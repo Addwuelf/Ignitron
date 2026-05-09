@@ -14,6 +14,7 @@ public class IgnitronApplication extends Application {
                 getClass().getResource("/org/example/ignitron/MainView.fxml")
         );
         Scene scene = new Scene(fxmlLoader.load(), 1200, 600);
+        scene.getStylesheets().add(getClass().getResource("/org/example/ignitron/styles.css").toExternalForm());
         stage.setScene(scene);
         stage.setTitle("Ignitron");
         stage.setMinWidth(900);
