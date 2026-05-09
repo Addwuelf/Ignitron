@@ -121,6 +121,9 @@ public class CurseForgeDetector {
             }
         }
 
+        // Profile name = instance folder name, used for caching and the launch command
+        String profileName = folder.getName();
+
         // Icon priority 1: CurseForge CDN thumbnail — downloaded once, then served from cache
         if (instance.getInstalledModpack() != null) {
             String url = instance.getInstalledModpack().getThumbnailUrl();
@@ -157,8 +160,6 @@ public class CurseForgeDetector {
         writeProfile(folder, manifest, instance);
 
         // Store the full launch command: minecraft.exe --workDir <installDir> --launch <profileName>
-        // The profile name is the instance folder name, matching CurseForge's own convention
-        String profileName = folder.getName();
         game.setLaunchCommand(List.of(MINECRAFT_EXE, "--workDir", INSTALL_DIR, "--launch", profileName));
 
         return game;
