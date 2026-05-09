@@ -24,6 +24,11 @@ public class CurseForgeMinecraft {
     @SerializedName("modLoaders")
     private List<CurseForgeModLoader> modLoaders;
 
+    // Recommended RAM in MB as specified by the pack author (e.g. 8192)
+    @SerializedName("recommendedRam")
+    private int recommendedRam;
+
     public String getVersion() { return version; }
     public List<CurseForgeModLoader> getModLoaders() { return modLoaders; }
+    public int getRecommendedRam() { return recommendedRam; }
 }

@@ -16,6 +16,7 @@ import org.example.ignitron.Config;
 import org.example.ignitron.Game;
 import org.example.ignitron.Library;
 import org.example.ignitron.LibraryStorage;
+import org.example.ignitron.GameDetection.curseforge.CurseForgeDetector;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -97,13 +98,24 @@ public class LibraryController {
 
     private void playGame(Game game) {
         try {
-            ProcessBuilder pb = new ProcessBuilder(game.getPath());
+            ProcessBuilder pb;
+
+            // Re-write the CurseForge launcher profile with fresh data before launching
+            // so modloader version changes after a pack update are always picked up
+            if ("curseforge".equals(game.getLauncher())) {
+                new CurseForgeDetector().refreshProfile(game);
+            }
+
+            // Use the full launch command if one is set (e.g. CurseForge instances
+            // need --workDir and --launch flags), otherwise just launch the exe directly
+            if (game.getLaunchCommand() != null && !game.getLaunchCommand().isEmpty()) {
+                pb = new ProcessBuilder(game.getLaunchCommand());
+            } else {
+                pb = new ProcessBuilder(game.getPath());
+            }
+
             pb.start();
-
             game.setLastPlayed(LocalDateTime.now());
-
-            // TODO Save library view
-            // library.save()
             refresh();
         }
         catch (Exception e) {

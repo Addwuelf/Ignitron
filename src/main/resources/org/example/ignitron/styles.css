@@ -260,3 +260,177 @@
     -fx-background-color: #3a7ee7;
     -fx-effect: dropshadow(gaussian, rgba(74,142,247,0.2), 8, 0, 0, 2);
 }
+
+/* ---- Sidebar spacer (pushes Scan button to the bottom) ---- */
+.sidebar-spacer {
+    -fx-min-height: 0;
+}
+
+/* ---- CurseForge Picker Window ---- */
+.picker-root {
+    -fx-background-color: #161616;
+    -fx-spacing: 0;
+}
+
+.picker-header {
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 18 24;
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 12;
+}
+
+.picker-title {
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.picker-count {
+    -fx-text-fill: #888888;
+    -fx-font-size: 13px;
+}
+
+.picker-toolbar {
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 10 24;
+    -fx-spacing: 10;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.picker-select-button {
+    -fx-background-color: #252525;
+    -fx-text-fill: #cccccc;
+    -fx-background-radius: 6px;
+    -fx-border-color: #333333;
+    -fx-border-radius: 6px;
+    -fx-border-width: 1px;
+    -fx-padding: 6 14;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+}
+
+.picker-select-button:hover {
+    -fx-background-color: #2e2e2e;
+    -fx-text-fill: white;
+}
+
+/* Scrollpane — mirrors library-scroll styling */
+.picker-scroll {
+    -fx-background: #161616;
+    -fx-background-color: #161616;
+}
+
+.picker-scroll > .viewport {
+    -fx-background-color: #161616;
+}
+
+.picker-scroll .scroll-bar:vertical,
+.picker-scroll .scroll-bar:horizontal {
+    -fx-background-color: #1a1a1a;
+}
+
+.picker-scroll .scroll-bar .thumb {
+    -fx-background-color: #3a3a3a;
+    -fx-background-radius: 4px;
+}
+
+.picker-scroll .scroll-bar .thumb:hover {
+    -fx-background-color: #4a4a4a;
+}
+
+.picker-scroll .scroll-bar .track {
+    -fx-background-color: #1a1a1a;
+    -fx-border-color: transparent;
+}
+
+.picker-scroll .scroll-bar .increment-button,
+.picker-scroll .scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.picker-scroll .scroll-bar .increment-arrow,
+.picker-scroll .scroll-bar .decrement-arrow {
+    -fx-background-color: #555555;
+    -fx-shape: " ";
+    -fx-padding: 0;
+}
+
+.picker-grid {
+    -fx-padding: 20;
+    -fx-hgap: 14;
+    -fx-vgap: 14;
+    -fx-background-color: #161616;
+}
+
+/* Individual pack card */
+.picker-card {
+    -fx-background-color: #1e1e1e;
+    -fx-background-radius: 10px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.45), 8, 0, 0, 3);
+}
+
+.picker-card:hover {
+    -fx-background-color: #262626;
+}
+
+/* Blue border applied when a card is selected */
+.picker-card-selected {
+    -fx-border-color: #4a8ef7;
+    -fx-border-width: 2px;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
+.picker-card-name {
+    -fx-text-fill: #d0d0d0;
+    -fx-font-size: 12px;
+    -fx-wrap-text: true;
+    -fx-text-alignment: CENTER;
+    -fx-alignment: CENTER;
+    -fx-pref-width: 128px;
+    -fx-max-width: 134px;
+}
+
+/* Checkbox styled to match the dark theme */
+.picker-checkbox .box {
+    -fx-background-color: #2a2a2a;
+    -fx-border-color: #555555;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.picker-checkbox:selected .box {
+    -fx-background-color: #4a8ef7;
+    -fx-border-color: #4a8ef7;
+    -fx-background-radius: 4px;
+}
+
+.picker-checkbox:selected .mark {
+    -fx-background-color: white;
+}
+
+.picker-footer {
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 14 24;
+    -fx-spacing: 12;
+    -fx-alignment: CENTER_RIGHT;
+}
+
+.picker-cancel-button {
+    -fx-background-color: #252525;
+    -fx-text-fill: #cccccc;
+    -fx-background-radius: 8px;
+    -fx-border-color: #333333;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-padding: 9 20;
+    -fx-font-size: 14px;
+    -fx-cursor: hand;
+}
+
+.picker-cancel-button:hover {
+    -fx-background-color: #2e2e2e;
+    -fx-text-fill: white;
+}
