@@ -3,10 +3,12 @@ package org.example.ignitron.controllers;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.ignitron.*;
 import org.example.ignitron.GameDetection.ExeExtraction.ExeMetadataReader;
@@ -23,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 public class MainController {
@@ -164,32 +167,125 @@ public class MainController {
         }
     }
 
-    // On launch add all games automatically
-    // Currently only Steam and Epic
-    public void autoAddGames() {
+    /**
+     * Detects games from all launchers and adds them to the library.
+     * Steam and Epic games are added automatically (new ones only).
+     * CurseForge instances go through the picker so the user chooses which to import.
+     * Returns the total number of newly added games.
+     */
+    public int autoAddGames() {
+        int added = 0;
 
-        List<Game> gameList = new ArrayList<>();
-        gameList.addAll(steamDetector.detectAllSteamGames());
-        gameList.addAll(epicDetector.detectAllEpicGames());
-        gameList.addAll(new CurseForgeDetector().detectAllInstances());
+        // ── Steam + Epic ─────────────────────────────────────────────────────
+        // Build a set of paths already in the library so we don't add duplicates
+        Set<String> existingPaths = library.getGames().stream()
+                .filter(g -> g.getPath() != null)
+                .map(Game::getPath)
+                .collect(Collectors.toSet());
 
-        for (Game game : gameList) {
+        List<Game> platformGames = new ArrayList<>();
+        platformGames.addAll(steamDetector.detectAllSteamGames());
+        platformGames.addAll(epicDetector.detectAllEpicGames());
 
+        for (Game game : platformGames) {
             if (Objects.equals(game.getName(), "Steamworks Common Redistributables")) continue;
+            if (existingPaths.contains(game.getPath())) continue; // already imported
 
-            // Only extract exe icons for games that don't already have one set.
-            // CurseForge games load their icon from a URL so we skip extraction for them
-            // to avoid overwriting it with the minecraft.exe icon.
             if (game.getIcon() == null && game.getPath() != null) {
-                File exeFile = new File(game.getPath());
-                Image icon = IconExtractor.extract32Icon(exeFile.getPath());
+                Image icon = IconExtractor.extract32Icon(game.getPath());
                 game.setIcon(icon);
                 game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
             }
-
             library.addGame(game);
+            added++;
         }
+
+        // ── CurseForge ───────────────────────────────────────────────────────
+        // Filter to only instances not already in the library, then show picker
+        List<Game> allCfInstances = new CurseForgeDetector().detectAllInstances();
+        List<Game> newCfInstances = filterNewCurseForgeInstances(allCfInstances);
+
+        if (!newCfInstances.isEmpty()) {
+            List<Game> chosen = showCurseForgePicker(newCfInstances);
+            if (chosen != null) {
+                for (Game game : chosen) {
+                    library.addGame(game);
+                    added++;
+                }
+            }
+        }
+
         LibraryStorage.saveLibrary(library.getGames());
+
+        // Refresh the library view if it's currently visible
+        LibraryController lc = getCurrentController();
+        if (lc != null) lc.refresh();
+
+        return added;
+    }
+
+    /**
+     * Returns only the CurseForge instances that are not already in the library,
+     * identified by their launch-command profile name (the folder name).
+     */
+    private List<Game> filterNewCurseForgeInstances(List<Game> detected) {
+        Set<String> existingProfiles = new HashSet<>();
+        for (Game g : library.getGames()) {
+            List<String> cmd = g.getLaunchCommand();
+            if (cmd != null && cmd.size() >= 5) {
+                existingProfiles.add(cmd.get(4));
+            }
+        }
+        return detected.stream()
+                .filter(g -> {
+                    List<String> cmd = g.getLaunchCommand();
+                    return cmd == null || cmd.size() < 5 || !existingProfiles.contains(cmd.get(4));
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Opens the CurseForge modpack picker as a modal window and returns the
+     * games the user selected, or null if they cancelled.
+     */
+    private List<Game> showCurseForgePicker(List<Game> instances) {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    IgnitronApplication.class.getResource("/org/example/ignitron/CurseForgePickerView.fxml"));
+            Node root = loader.load();
+
+            CurseForgePickerController controller = loader.getController();
+            controller.setGames(instances);
+
+            Stage pickerStage = new Stage();
+            pickerStage.initModality(Modality.APPLICATION_MODAL);
+            pickerStage.setTitle("Import Modpacks — Ignitron");
+            pickerStage.setResizable(true);
+
+            Scene scene = new Scene((javafx.scene.Parent) root);
+            scene.getStylesheets().add(
+                    IgnitronApplication.class.getResource("/org/example/ignitron/styles.css").toExternalForm());
+            pickerStage.setScene(scene);
+            pickerStage.showAndWait();
+
+            return controller.getResult();
+        } catch (IOException e) {
+            Log.error("Failed to open CurseForge picker", e);
+            return null;
+        }
+    }
+
+    /** Triggered by the "Scan for Games" button in the sidebar. */
+    @FXML
+    private void onScanClicked() {
+        int added = autoAddGames();
+        if (added == 0) {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Scan Complete");
+            alert.setHeaderText(null);
+            alert.setContentText("No new games were found.");
+            alert.show();
+        }
     }
 
     private void scanGameFolder(File folder) {

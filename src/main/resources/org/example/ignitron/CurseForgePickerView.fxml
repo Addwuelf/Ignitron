@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    Modal window for selecting which CurseForge modpack instances to import.
+    Cards are built programmatically in CurseForgePickerController.
+-->
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.ignitron.controllers.CurseForgePickerController"
+      styleClass="picker-root"
+      prefWidth="740" prefHeight="560">
+
+    <!-- Header: title + live selection count -->
+    <HBox styleClass="picker-header">
+        <Label text="Select Modpacks to Import" styleClass="picker-title" HBox.hgrow="ALWAYS"/>
+        <Label fx:id="countLabel" styleClass="picker-count"/>
+    </HBox>
+
+    <Region styleClass="sidebar-divider" maxWidth="Infinity"/>
+
+    <!-- Toolbar: select/deselect all -->
+    <HBox styleClass="picker-toolbar">
+        <Button text="Select All"    styleClass="picker-select-button" onAction="#onSelectAll"/>
+        <Button text="Deselect All"  styleClass="picker-select-button" onAction="#onDeselectAll"/>
+    </HBox>
+
+    <Region styleClass="sidebar-divider" maxWidth="Infinity"/>
+
+    <!-- Scrollable pack grid — cards injected by controller -->
+    <ScrollPane fx:id="scrollPane" styleClass="picker-scroll" VBox.vgrow="ALWAYS" fitToWidth="true">
+        <FlowPane fx:id="packGrid" styleClass="picker-grid"/>
+    </ScrollPane>
+
+    <Region styleClass="sidebar-divider" maxWidth="Infinity"/>
+
+    <!-- Footer: cancel + import -->
+    <HBox styleClass="picker-footer">
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Cancel"           styleClass="picker-cancel-button" onAction="#onCancel"/>
+        <Button fx:id="importButton"    text="Import Selected"
+                styleClass="add-game-button"  onAction="#onImport"/>
+    </HBox>
+
+</VBox>

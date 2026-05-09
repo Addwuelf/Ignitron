@@ -12,8 +12,15 @@
         <VBox styleClass="sidebar">
             <Label text="IGNITRON" styleClass="app-title" />
             <Region styleClass="sidebar-divider" maxWidth="Infinity" />
-            <Button text="Library" fx:id="libraryButton" styleClass="nav-button" maxWidth="Infinity" />
-            <Button text="Settings" fx:id="settingsButton" styleClass="nav-button" maxWidth="Infinity" />
+            <Button text="Library"  fx:id="libraryButton"  styleClass="nav-button" maxWidth="Infinity" onAction="#onLibraryClicked" />
+            <Button text="Settings" fx:id="settingsButton" styleClass="nav-button" maxWidth="Infinity" onAction="#onSettingsClicked" />
+
+            <!-- Spacer pushes Scan button to the bottom -->
+            <Region styleClass="sidebar-spacer" VBox.vgrow="ALWAYS" />
+
+            <Region styleClass="sidebar-divider" maxWidth="Infinity" />
+            <Button text="Scan for Games" fx:id="scanButton" styleClass="nav-button"
+                    maxWidth="Infinity" onAction="#onScanClicked" />
         </VBox>
     </left>
 
