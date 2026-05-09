@@ -61,48 +61,68 @@ public class CurseForgeDetector {
     /**
      * Attempts to build a Game object from a single instance folder.
      * Also writes a launcher profile so minecraft.exe can launch it directly.
-     * Returns null if the folder is not a valid CurseForge instance.
+     *
+     * Supports both marketplace packs (have manifest.json) and custom instances
+     * (no manifest.json — name, MC version, and modloader come from minecraftinstance.json).
+     * Returns null if neither file is present or the instance has no usable name.
      */
     private Game buildGame(File folder) {
         File manifestFile = new File(folder, "manifest.json");
         File instanceFile = new File(folder, "minecraftinstance.json");
 
-        // manifest.json is required — if it's missing this isn't a valid instance
-        if (!manifestFile.exists()) {
+        // minecraftinstance.json is the one file every instance must have
+        if (!instanceFile.exists()) {
             return null;
         }
 
-        CurseForgeManifest manifest = CurseForgeParser.parseManifest(manifestFile);
-        if (manifest == null || manifest.getName() == null) {
+        CurseForgeInstance instance = CurseForgeParser.parseInstance(instanceFile);
+        if (instance == null) {
             return null;
         }
 
-        // minecraftinstance.json is optional but contains the thumbnail URL and instance UUID
-        CurseForgeInstance instance = null;
-        if (instanceFile.exists()) {
-            instance = CurseForgeParser.parseInstance(instanceFile);
+        // manifest.json is only present on marketplace packs
+        CurseForgeManifest manifest = manifestFile.exists()
+                ? CurseForgeParser.parseManifest(manifestFile)
+                : null;
+
+        // Resolve the display name: manifest wins, then minecraftinstance name, then folder name
+        String name = null;
+        if (manifest != null && manifest.getName() != null) {
+            name = manifest.getName();
+        } else if (instance.getName() != null && !instance.getName().isEmpty()) {
+            name = instance.getName();
+        } else {
+            name = folder.getName();
         }
 
         // Build the Game object
         Game game = new Game();
-        game.setName(manifest.getName());
+        game.setName(name);
         game.setPath(MINECRAFT_EXE);
         game.setLauncher("curseforge");
         game.addTag("minecraft");
         game.addTag("curseforge");
 
-        // Add MC version and modloader (e.g. "1.21.1", "neoforge-21.1.219") as tags
-        if (manifest.getMinecraft() != null) {
+        // Add MC version and modloader as tags — prefer manifest, fall back to minecraftinstance
+        if (manifest != null && manifest.getMinecraft() != null) {
             game.addTag(manifest.getMinecraft().getVersion());
 
             List<CurseForgeModLoader> loaders = manifest.getMinecraft().getModLoaders();
             if (loaders != null && !loaders.isEmpty()) {
                 game.addTag(loaders.get(0).getId());
             }
+        } else {
+            // Custom instances store these directly on minecraftinstance.json
+            if (instance.getGameVersion() != null) {
+                game.addTag(instance.getGameVersion());
+            }
+            if (instance.getBaseModLoader() != null && instance.getBaseModLoader().getName() != null) {
+                game.addTag(instance.getBaseModLoader().getName());
+            }
         }
 
         // Icon: try thumbnailUrl first (fetched from CurseForge CDN)
-        if (instance != null && instance.getInstalledModpack() != null) {
+        if (instance.getInstalledModpack() != null) {
             String url = instance.getInstalledModpack().getThumbnailUrl();
             if (url != null && !url.isEmpty()) {
                 game.setIcon(new Image(url, true)); // true = load in background
@@ -132,6 +152,7 @@ public class CurseForgeDetector {
      * Re-reads the instance's manifest files and rewrites its launcher profile with fresh data.
      * Called every time Play is clicked so modloader version changes after a pack update
      * are always reflected without needing to re-run auto-detection.
+     * Works for both marketplace packs (have manifest.json) and custom instances (don't).
      */
     public void refreshProfile(Game game) {
         List<String> cmd = game.getLaunchCommand();
@@ -143,15 +164,16 @@ public class CurseForgeDetector {
 
         if (!folder.exists()) return;
 
-        File manifestFile = new File(folder, "manifest.json");
-        if (!manifestFile.exists()) return;
-
-        CurseForgeManifest manifest = CurseForgeParser.parseManifest(manifestFile);
-        if (manifest == null) return;
-
+        // minecraftinstance.json must exist — manifest.json is optional (absent on custom instances)
         File instanceFile = new File(folder, "minecraftinstance.json");
-        CurseForgeInstance instance = instanceFile.exists()
-                ? CurseForgeParser.parseInstance(instanceFile)
+        if (!instanceFile.exists()) return;
+
+        CurseForgeInstance instance = CurseForgeParser.parseInstance(instanceFile);
+        if (instance == null) return;
+
+        File manifestFile = new File(folder, "manifest.json");
+        CurseForgeManifest manifest = manifestFile.exists()
+                ? CurseForgeParser.parseManifest(manifestFile)
                 : null;
 
         writeProfile(folder, manifest, instance);
@@ -159,6 +181,7 @@ public class CurseForgeDetector {
 
     /**
      * Extracts the fields needed for the launcher profile and delegates to CurseForgeProfileWriter.
+     * manifest may be null for custom instances — falls back to minecraftinstance.json fields.
      */
     private void writeProfile(File folder, CurseForgeManifest manifest, CurseForgeInstance instance) {
         String profileName = folder.getName();
@@ -174,15 +197,20 @@ public class CurseForgeDetector {
                 ? instance.getInstalledModpack().getInstanceID()
                 : "";
 
-        // Use pack-recommended RAM if available, otherwise CurseForgeProfileWriter will use its default
-        int ram = (manifest.getMinecraft() != null) ? manifest.getMinecraft().getRecommendedRam() : 0;
-
+        // Resolve RAM and modloader version — prefer manifest, fall back to minecraftinstance.json
+        int ram = 0;
         String versionId = "";
-        if (manifest.getMinecraft() != null) {
+
+        if (manifest != null && manifest.getMinecraft() != null) {
+            ram = manifest.getMinecraft().getRecommendedRam();
             List<CurseForgeModLoader> loaders = manifest.getMinecraft().getModLoaders();
             if (loaders != null && !loaders.isEmpty()) {
                 versionId = loaders.get(0).getId();
             }
+        } else if (instance != null && instance.getBaseModLoader() != null
+                && instance.getBaseModLoader().getName() != null) {
+            // Custom instances store the active modloader directly on minecraftinstance.json
+            versionId = instance.getBaseModLoader().getName();
         }
 
         CurseForgeProfileWriter.writeProfile(profileName, installPath, versionId, ram, instanceId);
