@@ -12,6 +12,7 @@ import org.example.ignitron.*;
 import org.example.ignitron.GameDetection.ExeExtraction.ExeMetadataReader;
 import org.example.ignitron.GameDetection.GameDetector;
 import org.example.ignitron.GameDetection.LauncherInfo;
+import org.example.ignitron.GameDetection.curseforge.CurseForgeDetector;
 import org.example.ignitron.GameDetection.epic.EpicDetector;
 import org.example.ignitron.GameDetection.epic.EpicPathFinder;
 import org.example.ignitron.GameDetection.steam.SteamDetector;
@@ -170,12 +171,16 @@ public class MainController {
         List<Game> gameList = new ArrayList<>();
         gameList.addAll(steamDetector.detectAllSteamGames());
         gameList.addAll(epicDetector.detectAllEpicGames());
+        gameList.addAll(new CurseForgeDetector().detectAllInstances());
+
         for (Game game : gameList) {
 
             if (Objects.equals(game.getName(), "Steamworks Common Redistributables")) continue;
 
-            // Icon Extraction
-            if (game.getPath() != null) {
+            // Only extract exe icons for games that don't already have one set.
+            // CurseForge games load their icon from a URL so we skip extraction for them
+            // to avoid overwriting it with the minecraft.exe icon.
+            if (game.getIcon() == null && game.getPath() != null) {
                 File exeFile = new File(game.getPath());
                 Image icon = IconExtractor.extract32Icon(exeFile.getPath());
                 game.setIcon(icon);
