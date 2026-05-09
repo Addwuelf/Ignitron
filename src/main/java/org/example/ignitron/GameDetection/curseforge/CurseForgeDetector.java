@@ -129,6 +129,35 @@ public class CurseForgeDetector {
     }
 
     /**
+     * Re-reads the instance's manifest files and rewrites its launcher profile with fresh data.
+     * Called every time Play is clicked so modloader version changes after a pack update
+     * are always reflected without needing to re-run auto-detection.
+     */
+    public void refreshProfile(Game game) {
+        List<String> cmd = game.getLaunchCommand();
+        if (cmd == null || cmd.size() < 5) return;
+
+        // Profile name is the last element of the launch command (--launch <profileName>)
+        String profileName = cmd.get(4);
+        File folder = new File(INSTANCES_PATH, profileName);
+
+        if (!folder.exists()) return;
+
+        File manifestFile = new File(folder, "manifest.json");
+        if (!manifestFile.exists()) return;
+
+        CurseForgeManifest manifest = CurseForgeParser.parseManifest(manifestFile);
+        if (manifest == null) return;
+
+        File instanceFile = new File(folder, "minecraftinstance.json");
+        CurseForgeInstance instance = instanceFile.exists()
+                ? CurseForgeParser.parseInstance(instanceFile)
+                : null;
+
+        writeProfile(folder, manifest, instance);
+    }
+
+    /**
      * Extracts the fields needed for the launcher profile and delegates to CurseForgeProfileWriter.
      */
     private void writeProfile(File folder, CurseForgeManifest manifest, CurseForgeInstance instance) {
