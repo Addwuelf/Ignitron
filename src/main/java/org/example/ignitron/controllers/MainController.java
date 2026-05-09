@@ -377,7 +377,7 @@ public class MainController {
             // Icon Extraction
             Image icon = IconExtractor.extract32Icon(exeFile.getPath());
             game.setIcon(icon);
-            if (icon == null) {
+            if (icon != null) {
                 game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
             }
             // Add to Library
