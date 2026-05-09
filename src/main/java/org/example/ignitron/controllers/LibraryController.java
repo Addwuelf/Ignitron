@@ -97,13 +97,18 @@ public class LibraryController {
 
     private void playGame(Game game) {
         try {
-            ProcessBuilder pb = new ProcessBuilder(game.getPath());
+            ProcessBuilder pb;
+
+            // Use the full launch command if one is set (e.g. CurseForge instances
+            // need --workDir and --launch flags), otherwise just launch the exe directly
+            if (game.getLaunchCommand() != null && !game.getLaunchCommand().isEmpty()) {
+                pb = new ProcessBuilder(game.getLaunchCommand());
+            } else {
+                pb = new ProcessBuilder(game.getPath());
+            }
+
             pb.start();
-
             game.setLastPlayed(LocalDateTime.now());
-
-            // TODO Save library view
-            // library.save()
             refresh();
         }
         catch (Exception e) {
