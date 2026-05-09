@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
@@ -12,25 +9,32 @@
 
     <!-- Sidebar -->
     <left>
-        <VBox spacing="10" style="-fx-background-color: #1e1e1e; -fx-padding: 20;">
-            <Button text="Library" fx:id="libraryButton" />
-            <Button text="Settings" fx:id="settingsButton" />
+        <VBox styleClass="sidebar">
+            <Label text="IGNITRON" styleClass="app-title" />
+            <Region styleClass="sidebar-divider" maxWidth="Infinity" />
+            <Button text="Library"  fx:id="libraryButton"  styleClass="nav-button" maxWidth="Infinity" onAction="#onLibraryClicked" />
+            <Button text="Settings" fx:id="settingsButton" styleClass="nav-button" maxWidth="Infinity" onAction="#onSettingsClicked" />
+
+            <!-- Spacer pushes Scan button to the bottom -->
+            <Region styleClass="sidebar-spacer" VBox.vgrow="ALWAYS" />
+
+            <Region styleClass="sidebar-divider" maxWidth="Infinity" />
+            <Button text="Scan for Games" fx:id="scanButton" styleClass="nav-button"
+                    maxWidth="Infinity" onAction="#onScanClicked" />
         </VBox>
     </left>
 
     <!-- Top Bar -->
     <top>
-        <HBox spacing="10" style="-fx-background-color: #2a2a2a; -fx-padding: 10;">
-            <TextField fx:id="searchField" promptText="Search games..." />
-            <Button fx:id="addGameButton" text="Add Game" onAction="#onAddGameClicked"/>
-
+        <HBox styleClass="top-bar">
+            <TextField fx:id="searchField" promptText="Search games..." styleClass="search-field" HBox.hgrow="ALWAYS" />
+            <Button fx:id="addGameButton" text="Add Game" styleClass="add-game-button" onAction="#onAddGameClicked" />
         </HBox>
     </top>
 
     <!-- Main Content Area -->
     <center>
-        <StackPane fx:id="contentArea" />
+        <StackPane fx:id="contentArea" style="-fx-background-color: #161616;" />
     </center>
 
 </BorderPane>
-

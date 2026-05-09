@@ -21,6 +21,10 @@ public class Game {
     private transient File folder;
     private Map<String, String> metadata;
 
+    // Full launch command used instead of plain path when extra arguments are needed
+    // (e.g. CurseForge instances that require --workDir and --launch flags)
+    private List<String> launchCommand;
+
   public Game() {}
 
   public Game(String name, String path, Image icon, Set<String> gameTags, int playTime, LocalDateTime lastPlayed, String launcher) {
@@ -66,7 +70,6 @@ public class Game {
 
     public String getIconPath() { return iconPath; }
     public void setIconPath(String iconPath) { this.iconPath = iconPath; }
-
     public Set<String> getGameTags() { return gameTags; }
     public void setGameTags(Set<String> gameTags) { this.gameTags = gameTags; }
 
@@ -81,6 +84,9 @@ public class Game {
 
     public void setFolder(File folder) {this.folder = folder; }
     public File getFolder() { return folder; }
+
+    public List<String> getLaunchCommand() { return launchCommand; }
+    public void setLaunchCommand(List<String> launchCommand) { this.launchCommand = launchCommand; }
 
     // Useful methods for tags
     public void addTag(String tag) { gameTags.add(tag.toLowerCase()); }

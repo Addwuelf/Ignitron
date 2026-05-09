@@ -57,6 +57,7 @@ public class GameDetailsController {
 
             for (String tag : currentGame.getGameTags()) {
                 Label tagLabel = new Label(tag);
+                tagLabel.getStyleClass().add("tag-label");
                 tagContainer.getChildren().add(tagLabel);
             }
             updateLastPlayed();

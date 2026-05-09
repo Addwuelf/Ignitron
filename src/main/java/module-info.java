@@ -11,6 +11,8 @@ module org.example.ignitron {
 
     opens org.example.ignitron;
     opens org.example.ignitron.controllers to javafx.fxml;
+    opens org.example.ignitron.GameDetection.epic to com.google.gson;
+    opens org.example.ignitron.GameDetection.curseforge to com.google.gson;
 
     exports org.example.ignitron;
     exports org.example.ignitron.controllers;
