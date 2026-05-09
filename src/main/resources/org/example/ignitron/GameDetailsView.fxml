@@ -5,59 +5,42 @@
 <?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane prefHeight="900" prefWidth="900"
-            style="-fx-background-color: #3a3a3a;"
+<BorderPane styleClass="details-pane"
             xmlns="http://javafx.com/javafx/17.0.12"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="org.example.ignitron.controllers.GameDetailsController">
 
-
-<!-- Back Button -->
+    <!-- Back Button Bar -->
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="10" style="-fx-padding: 20;">
-            <Button onAction="#onBackClicked"
-                    style="
-            -fx-background-radius: 8;
-            -fx-padding: 4 10;
-            -fx-background-color: #2d2d2d;
-        ">
+        <HBox alignment="CENTER_LEFT" styleClass="details-back-bar">
+            <Button onAction="#onBackClicked" styleClass="back-button">
                 <graphic>
-                    <Label text="←"
-                           style="-fx-font-size: 36px; -fx-text-fill: white;" />
+                    <Label text="←" styleClass="back-arrow" />
                 </graphic>
             </Button>
-
-
         </HBox>
     </top>
 
     <center>
-        <!-- your existing VBox content -->
         <VBox alignment="TOP_CENTER" spacing="20">
             <padding>
                 <Insets bottom="40" left="40" right="40" top="40" />
             </padding>
 
             <ImageView fx:id="gameIcon" fitHeight="256" fitWidth="256" preserveRatio="true" />
-            <Label fx:id="gameName" style="-fx-font-size: 32px; -fx-font-weight: bold;" />
+            <Label fx:id="gameName" styleClass="details-game-name" />
             <FlowPane fx:id="tagContainer" alignment="CENTER" hgap="10" vgap="10" />
 
             <VBox alignment="CENTER" spacing="6">
-                <Label fx:id="lastPlayedLabel" />
-                <Label fx:id="totalPlaytimeLabel" />
-                <Label fx:id="installPathLabel" />
+                <Label fx:id="lastPlayedLabel" styleClass="details-info-label" />
+                <Label fx:id="totalPlaytimeLabel" styleClass="details-info-label" />
+                <Label fx:id="installPathLabel" styleClass="details-info-label" />
             </VBox>
 
             <Button fx:id="playButton"
                     onAction="#onPlayClicked"
                     text="Play"
-                    style="
-            -fx-background-color: #3a3a3a;
-            -fx-background-radius: 8;
-            -fx-font-size: 18px;
-            -fx-text-fill: white;
-            -fx-padding: 10 40;
-        " />
+                    styleClass="details-play-button" />
 
         </VBox>
     </center>

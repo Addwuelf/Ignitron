@@ -118,43 +118,30 @@ public class LibraryController {
     }
         private Node createGameCard(Game game) {
             VBox card = new VBox(10);
-            card.setStyle("-fx-background-color: #2a2a2a; -fx-padding: 10; -fx-background-radius: 8;");
-            card.setPrefSize(150, 200);
+            card.getStyleClass().add("game-card");
+            card.setPrefSize(160, 220);
             card.setOnMouseClicked(e -> {
-                // If the user clicked the Play button, do NOT open details
                 if (e.getTarget() instanceof Button) return;
-
                 MainController.getInstance().showGameDetails(game);
             });
 
-
             ImageView icon = new ImageView();
-            icon.setFitWidth(130);
-            icon.setFitHeight(130);
+            icon.setFitWidth(136);
+            icon.setFitHeight(136);
 
-
-
-            // Load icon if you have one
             if (game.getIcon() != null) {
                 icon.setImage(game.getIcon());
             }
-            else {
-
-            }
 
             Label name = new Label(game.getName());
-            name.setStyle("-fx-text-fill: white; -fx-font-size: 14px;");
+            name.getStyleClass().add("game-card-name");
 
             Button playButton = new Button("Play");
-            playButton.setStyle(
-                    "-fx-background-color: #3a3a3a; -fx-text-fill: white; -fx-background-radius: 6;"
-            );
-
+            playButton.getStyleClass().add("card-play-button");
             playButton.setOnAction(e -> {
-                e.consume(); // prevents triggering card click
+                e.consume();
                 playGame(game);
             });
-
 
             card.getChildren().addAll(icon, name, playButton);
 
