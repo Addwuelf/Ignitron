@@ -121,19 +121,35 @@ public class CurseForgeDetector {
             }
         }
 
-        // Icon: try thumbnailUrl first (fetched from CurseForge CDN)
+        // Icon priority 1: CurseForge CDN thumbnail — downloaded once, then served from cache
         if (instance.getInstalledModpack() != null) {
             String url = instance.getInstalledModpack().getThumbnailUrl();
             if (url != null && !url.isEmpty()) {
-                game.setIcon(new Image(url, true)); // true = load in background
+                String cachedPath = CurseForgeIconCache.getOrDownload(url, profileName);
+                if (cachedPath != null) {
+                    game.setIconPath(cachedPath); // loaded lazily from disk by Game.getIcon()
+                } else {
+                    game.setIcon(new Image(url, true)); // cache failed — fall back to URL load
+                }
             }
         }
 
-        // Icon fallback: some packs include a packicon.png via the KubeJS mod
-        if (game.getIcon() == null) {
+        // Icon priority 2: KubeJS packicon.png (included by some custom packs)
+        if (game.getIcon() == null && game.getIconPath() == null) {
             File packIcon = new File(folder, "kubejs/config/packicon.png");
             if (packIcon.exists()) {
-                game.setIcon(new Image(packIcon.toURI().toString()));
+                game.setIconPath(packIcon.getAbsolutePath());
+            }
+        }
+
+        // Icon priority 3: generated default grass-block icon — original artwork,
+        // safe for commercial use. Saved to disk so it persists across sessions.
+        if (game.getIcon() == null && game.getIconPath() == null) {
+            String defaultPath = CurseForgeIconCache.getOrCreateDefaultIconPath();
+            if (defaultPath != null) {
+                game.setIconPath(defaultPath);
+            } else {
+                game.setIcon(CurseForgeIconCache.createDefaultIcon());
             }
         }
 
