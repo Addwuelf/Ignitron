@@ -1,11 +1,13 @@
 package org.example.ignitron;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Library {
 
-    private List<Game> games = new ArrayList<Game>();
+    // CopyOnWriteArrayList keeps reads safe when the background scan thread
+    // adds games concurrently with the FX thread reading the list
+    private List<Game> games = new CopyOnWriteArrayList<>();
 
    public void addGame(Game game) {
        games.add(game);
