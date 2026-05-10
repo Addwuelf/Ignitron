@@ -433,4 +433,21 @@
 .picker-cancel-button:hover {
     -fx-background-color: #2e2e2e;
     -fx-text-fill: white;
+
+    .picker-subtitle {
+        -fx-text-fill: #888888;
+        -fx-font-size: 13px;
+        -fx-padding: 4 0 0 0;
+    }
+
+    .badge-detected {
+        -fx-text-fill: #4caf50;
+        -fx-font-size: 12px;
+        -fx-font-weight: bold;
+    }
+
+    .badge-not-found {
+        -fx-text-fill: #555555;
+        -fx-font-size: 12px;
+    }
 }

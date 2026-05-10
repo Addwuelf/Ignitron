@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    Modal window for selecting which launchers to import.
+    Cards are built programmatically in LauncherPickerController.
+-->
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.ignitron.controllers.LauncherPickerController"
+      styleClass="picker-root"
+      prefWidth="740" prefHeight="560">
+
+    <VBox styleClass="picker-root" prefWidth="680" prefHeight="480">
+
+        <HBox styleClass="picker-header">
+            <VBox HBox.hgrow="ALWAYS">
+                <Label text="Welcome to Ignitron" styleClass="picker-title"/>
+                <Label text="Choose which launchers to import your games from."
+                       styleClass="picker-count"/>
+            </VBox>
+            <Label fx:id="countLabel" styleClass="picker-count"/>
+        </HBox>
+
+        <Region styleClass="sidebar-divider" maxWidth="Infinity"/>
+
+        <HBox styleClass="picker-toolbar">
+            <Button text="Select All"   styleClass="picker-select-button" onAction="#onSelectAll"/>
+            <Button text="Deselect All" styleClass="picker-select-button" onAction="#onDeselectAll"/>
+        </HBox>
+
+        <Region styleClass="sidebar-divider" maxWidth="Infinity"/>
+
+        <ScrollPane fx:id="scrollPane" styleClass="picker-scroll"
+                    VBox.vgrow="ALWAYS" fitToWidth="true">
+            <FlowPane fx:id="launcherGrid" styleClass="picker-grid"/>
+        </ScrollPane>
+
+        <Region styleClass="sidebar-divider" maxWidth="Infinity"/>
+
+        <HBox styleClass="picker-footer">
+            <Label text="You can rescan anytime from the sidebar."
+                   styleClass="picker-count" HBox.hgrow="ALWAYS"/>
+            <Button text="Skip"            styleClass="picker-cancel-button" onAction="#onSkip"/>
+            <Button text="Import Selected" styleClass="add-game-button"      onAction="#onImport"/>
+        </HBox>
+
+    </VBox>
+
+</VBox>
+
