@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 
@@ -51,6 +53,9 @@ public class MainController {
     private Library library;
 
     private static MainController instance;
+
+    // Prevents two scans running simultaneously (e.g. double-clicking Scan for Games)
+    private final AtomicBoolean scanning = new AtomicBoolean(false);
 
     Path steamPath = SteamRegistryReader.getSteamPath();
     Path epicPath = EpicPathFinder.getManifestDir();
@@ -181,15 +186,24 @@ public class MainController {
      * @param notifyIfEmpty  show an alert when no new games are found (used by the rescan button)
      */
     public void autoAddGames(Set<String> launchers, boolean notifyIfEmpty) {
-        // Show loading overlay — use Platform.runLater so the view is guaranteed
-        // to be in the content area before we try to access the controller
+        // Guard against two scans running at the same time (e.g. double-click)
+        if (!scanning.compareAndSet(false, true)) {
+            Log.info("Scan already in progress — ignoring duplicate request");
+            return;
+        }
+
+        // Show loading overlay — Platform.runLater ensures the view is in the
+        // content area before we try to access the controller
         Platform.runLater(() -> {
             LibraryController lc = getCurrentController();
             if (lc != null) lc.showLoading(true);
         });
 
-        // Task returns the list of new CurseForge instances so the picker can be
-        // shown on the FX thread in setOnSucceeded
+        // Track how many Steam/Epic games are added so the notify check is accurate
+        AtomicInteger platformAdded = new AtomicInteger(0);
+
+        // Task returns new CurseForge instances so the picker can be shown on the
+        // FX thread in setOnSucceeded
         Task<List<Game>> scanTask = new Task<>() {
             @Override
             protected List<Game> call() {
@@ -215,12 +229,13 @@ public class MainController {
                         game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
                     }
                     library.addGame(game);
+                    platformAdded.incrementAndGet();
                 }
 
                 // ── CurseForge detection + icon caching (background) ──────────
                 if (launchers.contains("curseforge")) {
                     List<Game> all = new CurseForgeDetector().detectAllInstances();
-                    return filterNewCurseForgeInstances(all); // pass new instances to FX thread
+                    return filterNewCurseForgeInstances(all);
                 }
 
                 return new ArrayList<>();
@@ -232,7 +247,6 @@ public class MainController {
             List<Game> newCfInstances = scanTask.getValue();
             int cfAdded = 0;
 
-            // Show modpack picker for any new CurseForge instances found
             if (!newCfInstances.isEmpty()) {
                 List<Game> chosen = showCurseForgePicker(newCfInstances);
                 if (chosen != null) {
@@ -244,6 +258,7 @@ public class MainController {
             }
 
             LibraryStorage.saveLibrary(library.getGames());
+            scanning.set(false);
 
             LibraryController lc = getCurrentController();
             if (lc != null) {
@@ -251,8 +266,9 @@ public class MainController {
                 lc.refresh();
             }
 
-            // Let the user know if a manual rescan found nothing new
-            if (notifyIfEmpty && library.getGames().isEmpty() || (notifyIfEmpty && cfAdded == 0 && newCfInstances.isEmpty())) {
+            // Only notify if nothing was added across all launchers this scan
+            int totalAdded = platformAdded.get() + cfAdded;
+            if (notifyIfEmpty && totalAdded == 0) {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Scan Complete");
                 alert.setHeaderText(null);
@@ -263,6 +279,7 @@ public class MainController {
 
         scanTask.setOnFailed(e -> {
             Log.error("Game scan failed", scanTask.getException());
+            scanning.set(false);
             LibraryController lc = getCurrentController();
             if (lc != null) lc.showLoading(false);
         });
@@ -278,6 +295,11 @@ public class MainController {
     // Called by the Scan for Games button — notifies if nothing new found
     public void autoAddGames() {
         autoAddGames(Set.of("steam", "epic", "curseforge"), false);
+    }
+
+    /** Saves the current library to disk — called by other controllers that modify game state. */
+    public void saveLibrary() {
+        LibraryStorage.saveLibrary(library.getGames());
     }
 
     /**
@@ -380,7 +402,9 @@ public class MainController {
 
     private void scanGameFolder(File folder) {
         ArrayList<File> foundFiles = new ArrayList<>();
-        for (File file : folder.listFiles()) {
+        File[] children = folder.listFiles();
+        if (children == null) return;
+        for (File file : children) {
             if (file.getName().endsWith(".exe")) {
                 foundFiles.add(file);
             } else if (file.isDirectory()) {
@@ -599,6 +623,7 @@ public class MainController {
         }
 
         ArrayList<File> chosenGames = showMultiSelectExeDialog(executables);
+        if (chosenGames == null) return; // user cancelled the dialog
 
         for (File file : chosenGames) {
             if (file != null) {

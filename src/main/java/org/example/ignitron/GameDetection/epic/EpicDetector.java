@@ -38,6 +38,12 @@ public class EpicDetector {
     public List<Game> detectAllEpicGames() {
         List<Game> games = new ArrayList<>();
 
+        // Epic Games Launcher is not installed or manifest dir not found
+        if (epicManifestPath == null) {
+            Log.info("Epic manifest path not found — skipping Epic detection");
+            return games;
+        }
+
         // Get all manifests
         List<EpicManifest> manifests = EpicManifestParser.loadManifests(epicManifestPath);
 

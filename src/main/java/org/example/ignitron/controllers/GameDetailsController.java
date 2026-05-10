@@ -75,6 +75,7 @@ public class GameDetailsController {
                 Process process = pb.start();
 
                 currentGame.setLastPlayed(LocalDateTime.now());
+                MainController.getInstance().saveLibrary(); // persist lastPlayed
                 updateLastPlayed();
 
                 String launchMessage = "Launched Game: " + currentGame.getName();

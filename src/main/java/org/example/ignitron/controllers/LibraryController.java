@@ -79,12 +79,14 @@ public class LibraryController {
     public void search(String query) {
         if (library == null) return;
 
-        // Filter results
-        var results = library.filterByName(query);
-
         gameGrid.getChildren().clear();
 
-        for (Game game : library.getGames()) {
+        // Use the full list when the query is empty, otherwise show only matches
+        List<Game> results = (query == null || query.isBlank())
+                ? library.getGames()
+                : library.filterByName(query);
+
+        for (Game game : results) {
             Node card = createGameCard(game);
             gameGrid.getChildren().add(card);
         }
@@ -125,6 +127,7 @@ public class LibraryController {
 
             pb.start();
             game.setLastPlayed(LocalDateTime.now());
+            LibraryStorage.saveLibrary(library.getGames()); // persist lastPlayed
             refresh();
         }
         catch (Exception e) {
