@@ -5,6 +5,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -28,6 +29,8 @@ import java.util.Set;
 public class LibraryController {
 
     @FXML private FlowPane gameGrid;
+    @FXML private ScrollPane scrollPane;
+    @FXML private VBox loadingOverlay;
 
     private Library library;
 
@@ -50,9 +53,15 @@ public class LibraryController {
         }
     }
 
-    public void setLibrary (Library library) {
+    public void setLibrary(Library library) {
         this.library = library;
         refresh();
+    }
+
+    /** Shows or hides the loading overlay that sits on top of the game grid. */
+    public void showLoading(boolean loading) {
+        loadingOverlay.setVisible(loading);
+        loadingOverlay.setManaged(loading);
     }
 
     public void refresh() {

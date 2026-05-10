@@ -1,5 +1,7 @@
 package org.example.ignitron.controllers;
 
+import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -169,70 +171,113 @@ public class MainController {
     }
 
     /**
-     * Detects games from all launchers and adds them to the library.
-     * Steam and Epic games are added automatically (new ones only).
-     * CurseForge instances go through the picker so the user chooses which to import.
-     * Returns the total number of newly added games.
+     * Runs game detection on a background thread so the UI stays responsive.
+     *
+     * Steam and Epic detection + icon extraction happen entirely off the FX thread.
+     * CurseForge instance detection also runs in the background; the modpack picker
+     * (which requires the FX thread) is shown in setOnSucceeded once the scan finishes.
+     *
+     * @param launchers      which launcher ids to scan
+     * @param notifyIfEmpty  show an alert when no new games are found (used by the rescan button)
      */
-    public int autoAddGames(Set<String> launchers) {
-        int added = 0;
+    public void autoAddGames(Set<String> launchers, boolean notifyIfEmpty) {
+        // Show loading overlay — use Platform.runLater so the view is guaranteed
+        // to be in the content area before we try to access the controller
+        Platform.runLater(() -> {
+            LibraryController lc = getCurrentController();
+            if (lc != null) lc.showLoading(true);
+        });
 
-        List<Game> platformGames = new ArrayList<>();
-        if(launchers.contains("steam")) {
-            platformGames.addAll(steamDetector.detectAllSteamGames());
-        }
-        if(launchers.contains("epic")) {
-            platformGames.addAll(epicDetector.detectAllEpicGames());
-        }
+        // Task returns the list of new CurseForge instances so the picker can be
+        // shown on the FX thread in setOnSucceeded
+        Task<List<Game>> scanTask = new Task<>() {
+            @Override
+            protected List<Game> call() {
+                // ── Steam + Epic (background) ─────────────────────────────────
+                Set<String> existingPaths = library.getGames().stream()
+                        .filter(g -> g.getPath() != null)
+                        .map(Game::getPath)
+                        .collect(Collectors.toSet());
 
-        // ── Steam + Epic ─────────────────────────────────────────────────────
-        // Build a set of paths already in the library so we don't add duplicates
-        Set<String> existingPaths = library.getGames().stream()
-                .filter(g -> g.getPath() != null)
-                .map(Game::getPath)
-                .collect(Collectors.toSet());
+                List<Game> platformGames = new ArrayList<>();
+                if (launchers.contains("steam"))
+                    platformGames.addAll(steamDetector.detectAllSteamGames());
+                if (launchers.contains("epic"))
+                    platformGames.addAll(epicDetector.detectAllEpicGames());
 
-        for (Game game : platformGames) {
-            if (Objects.equals(game.getName(), "Steamworks Common Redistributables")) continue;
-            if (existingPaths.contains(game.getPath())) continue; // already imported
+                for (Game game : platformGames) {
+                    if (Objects.equals(game.getName(), "Steamworks Common Redistributables")) continue;
+                    if (existingPaths.contains(game.getPath())) continue;
 
-            if (game.getIcon() == null && game.getPath() != null) {
-                Image icon = IconExtractor.extract32Icon(game.getPath());
-                game.setIcon(icon);
-                game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
+                    if (game.getIcon() == null && game.getPath() != null) {
+                        Image icon = IconExtractor.extract32Icon(game.getPath());
+                        game.setIcon(icon);
+                        game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
+                    }
+                    library.addGame(game);
+                }
+
+                // ── CurseForge detection + icon caching (background) ──────────
+                if (launchers.contains("curseforge")) {
+                    List<Game> all = new CurseForgeDetector().detectAllInstances();
+                    return filterNewCurseForgeInstances(all); // pass new instances to FX thread
+                }
+
+                return new ArrayList<>();
             }
-            library.addGame(game);
-            added++;
-        }
+        };
 
-        if (launchers.contains("curseforge")) {
-            // ── CurseForge ───────────────────────────────────────────────────────
-            // Filter to only instances not already in the library, then show picker
-            List<Game> allCfInstances = new CurseForgeDetector().detectAllInstances();
-            List<Game> newCfInstances = filterNewCurseForgeInstances(allCfInstances);
+        scanTask.setOnSucceeded(e -> {
+            // ── Back on FX thread ─────────────────────────────────────────────
+            List<Game> newCfInstances = scanTask.getValue();
+            int cfAdded = 0;
 
+            // Show modpack picker for any new CurseForge instances found
             if (!newCfInstances.isEmpty()) {
                 List<Game> chosen = showCurseForgePicker(newCfInstances);
                 if (chosen != null) {
                     for (Game game : chosen) {
                         library.addGame(game);
-                        added++;
+                        cfAdded++;
                     }
                 }
             }
-        }
-        LibraryStorage.saveLibrary(library.getGames());
 
-        // Refresh the library view if it's currently visible
-        LibraryController lc = getCurrentController();
-        if (lc != null) lc.refresh();
+            LibraryStorage.saveLibrary(library.getGames());
 
-        return added;
+            LibraryController lc = getCurrentController();
+            if (lc != null) {
+                lc.showLoading(false);
+                lc.refresh();
+            }
+
+            // Let the user know if a manual rescan found nothing new
+            if (notifyIfEmpty && library.getGames().isEmpty() || (notifyIfEmpty && cfAdded == 0 && newCfInstances.isEmpty())) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Scan Complete");
+                alert.setHeaderText(null);
+                alert.setContentText("No new games were found.");
+                alert.show();
+            }
+        });
+
+        scanTask.setOnFailed(e -> {
+            Log.error("Game scan failed", scanTask.getException());
+            LibraryController lc = getCurrentController();
+            if (lc != null) lc.showLoading(false);
+        });
+
+        new Thread(scanTask).start();
     }
 
-    // No-arg version used by the Scan for Games button — always scans everything
-    public int autoAddGames() {
-        return autoAddGames(Set.of("steam", "epic", "curseforge"));
+    // Called by the first-boot picker — no empty notification needed
+    public void autoAddGames(Set<String> launchers) {
+        autoAddGames(launchers, false);
+    }
+
+    // Called by the Scan for Games button — notifies if nothing new found
+    public void autoAddGames() {
+        autoAddGames(Set.of("steam", "epic", "curseforge"), false);
     }
 
     /**
@@ -330,14 +375,7 @@ public class MainController {
     /** Triggered by the "Scan for Games" button in the sidebar. */
     @FXML
     private void onScanClicked() {
-        int added = autoAddGames();
-        if (added == 0) {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Scan Complete");
-            alert.setHeaderText(null);
-            alert.setContentText("No new games were found.");
-            alert.show();
-        }
+        autoAddGames(Set.of("steam", "epic", "curseforge"), true);
     }
 
     private void scanGameFolder(File folder) {
