@@ -44,7 +44,7 @@ public class LibraryController {
         gameGrid.getChildren().clear();
 
         if(!config.isAutoAddDone()) {
-            MainController.getInstance().autoAddGames();
+            MainController.getInstance().showFirstBootPicker();
             config.setAutoAddDone(true);
             config.save();
         }

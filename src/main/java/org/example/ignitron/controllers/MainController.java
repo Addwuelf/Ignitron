@@ -14,6 +14,7 @@ import org.example.ignitron.*;
 import org.example.ignitron.GameDetection.ExeExtraction.ExeMetadataReader;
 import org.example.ignitron.GameDetection.GameDetector;
 import org.example.ignitron.GameDetection.LauncherInfo;
+import org.example.ignitron.GameDetection.LauncherOption;
 import org.example.ignitron.GameDetection.curseforge.CurseForgeDetector;
 import org.example.ignitron.GameDetection.epic.EpicDetector;
 import org.example.ignitron.GameDetection.epic.EpicPathFinder;
@@ -173,8 +174,16 @@ public class MainController {
      * CurseForge instances go through the picker so the user chooses which to import.
      * Returns the total number of newly added games.
      */
-    public int autoAddGames() {
+    public int autoAddGames(Set<String> launchers) {
         int added = 0;
+
+        List<Game> platformGames = new ArrayList<>();
+        if(launchers.contains("steam")) {
+            platformGames.addAll(steamDetector.detectAllSteamGames());
+        }
+        if(launchers.contains("epic")) {
+            platformGames.addAll(epicDetector.detectAllEpicGames());
+        }
 
         // ── Steam + Epic ─────────────────────────────────────────────────────
         // Build a set of paths already in the library so we don't add duplicates
@@ -182,10 +191,6 @@ public class MainController {
                 .filter(g -> g.getPath() != null)
                 .map(Game::getPath)
                 .collect(Collectors.toSet());
-
-        List<Game> platformGames = new ArrayList<>();
-        platformGames.addAll(steamDetector.detectAllSteamGames());
-        platformGames.addAll(epicDetector.detectAllEpicGames());
 
         for (Game game : platformGames) {
             if (Objects.equals(game.getName(), "Steamworks Common Redistributables")) continue;
@@ -200,21 +205,22 @@ public class MainController {
             added++;
         }
 
-        // ── CurseForge ───────────────────────────────────────────────────────
-        // Filter to only instances not already in the library, then show picker
-        List<Game> allCfInstances = new CurseForgeDetector().detectAllInstances();
-        List<Game> newCfInstances = filterNewCurseForgeInstances(allCfInstances);
+        if (launchers.contains("curseforge")) {
+            // ── CurseForge ───────────────────────────────────────────────────────
+            // Filter to only instances not already in the library, then show picker
+            List<Game> allCfInstances = new CurseForgeDetector().detectAllInstances();
+            List<Game> newCfInstances = filterNewCurseForgeInstances(allCfInstances);
 
-        if (!newCfInstances.isEmpty()) {
-            List<Game> chosen = showCurseForgePicker(newCfInstances);
-            if (chosen != null) {
-                for (Game game : chosen) {
-                    library.addGame(game);
-                    added++;
+            if (!newCfInstances.isEmpty()) {
+                List<Game> chosen = showCurseForgePicker(newCfInstances);
+                if (chosen != null) {
+                    for (Game game : chosen) {
+                        library.addGame(game);
+                        added++;
+                    }
                 }
             }
         }
-
         LibraryStorage.saveLibrary(library.getGames());
 
         // Refresh the library view if it's currently visible
@@ -222,6 +228,11 @@ public class MainController {
         if (lc != null) lc.refresh();
 
         return added;
+    }
+
+    // No-arg version used by the Scan for Games button — always scans everything
+    public int autoAddGames() {
+        return autoAddGames(Set.of("steam", "epic", "curseforge"));
     }
 
     /**
@@ -242,6 +253,47 @@ public class MainController {
                     return cmd == null || cmd.size() < 5 || !existingProfiles.contains(cmd.get(4));
                 })
                 .collect(Collectors.toList());
+    }
+
+    public void showFirstBootPicker() {
+        boolean cfInstalled = new File(
+                System.getProperty("user.home"), "curseforge/minecraft/instances"
+        ).exists();
+
+        List<LauncherOption> options = new ArrayList<>(List.of(
+                new LauncherOption("steam", "Steam", "S", "#1b2838", steamPath != null),
+                new LauncherOption("epic",       "Epic Games", "EG", "#2d2d2d", epicPath != null),
+                new LauncherOption("curseforge", "CurseForge", "CF", "#f16436", cfInstalled)
+        ));
+
+        // load LauncherPickerView.fxml, show modal, get result
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                    IgnitronApplication.class.getResource("/org/example/ignitron/LauncherPickerView.fxml"));
+            Node root = loader.load();
+
+            LauncherPickerController controller = loader.getController();
+            controller.setOptions(options);
+
+            Stage stage = new Stage();
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setTitle("Setup — Ignitron");
+            stage.setResizable(false);
+
+            Scene scene = new Scene((javafx.scene.Parent) root);
+            scene.getStylesheets().add(
+                    IgnitronApplication.class.getResource("/org/example/ignitron/styles.css").toExternalForm());
+            stage.setScene(scene);
+            stage.showAndWait();
+
+            Set<String> selected = controller.getResult();
+            if (selected != null && !selected.isEmpty()) {
+                autoAddGames(selected);
+            }
+
+        } catch (IOException e) {
+            Log.error("Failed to open launcher picker", e);
+        }
     }
 
     /**
