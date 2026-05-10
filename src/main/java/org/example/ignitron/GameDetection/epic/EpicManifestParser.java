@@ -27,7 +27,7 @@ public class EpicManifestParser {
                     });
         } catch (IOException e) {
             Log.error("Failed to load manifests from " + manifestsDir + "!", e);
-            return null;
+            return new ArrayList<>(); // never return null — callers iterate the result
         }
         return manifests;
     }

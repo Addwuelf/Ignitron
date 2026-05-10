@@ -1,5 +1,7 @@
 package org.example.ignitron.controllers;
 
+import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -26,6 +28,8 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 
@@ -49,6 +53,9 @@ public class MainController {
     private Library library;
 
     private static MainController instance;
+
+    // Prevents two scans running simultaneously (e.g. double-clicking Scan for Games)
+    private final AtomicBoolean scanning = new AtomicBoolean(false);
 
     Path steamPath = SteamRegistryReader.getSteamPath();
     Path epicPath = EpicPathFinder.getManifestDir();
@@ -169,70 +176,130 @@ public class MainController {
     }
 
     /**
-     * Detects games from all launchers and adds them to the library.
-     * Steam and Epic games are added automatically (new ones only).
-     * CurseForge instances go through the picker so the user chooses which to import.
-     * Returns the total number of newly added games.
+     * Runs game detection on a background thread so the UI stays responsive.
+     *
+     * Steam and Epic detection + icon extraction happen entirely off the FX thread.
+     * CurseForge instance detection also runs in the background; the modpack picker
+     * (which requires the FX thread) is shown in setOnSucceeded once the scan finishes.
+     *
+     * @param launchers      which launcher ids to scan
+     * @param notifyIfEmpty  show an alert when no new games are found (used by the rescan button)
      */
-    public int autoAddGames(Set<String> launchers) {
-        int added = 0;
-
-        List<Game> platformGames = new ArrayList<>();
-        if(launchers.contains("steam")) {
-            platformGames.addAll(steamDetector.detectAllSteamGames());
-        }
-        if(launchers.contains("epic")) {
-            platformGames.addAll(epicDetector.detectAllEpicGames());
+    public void autoAddGames(Set<String> launchers, boolean notifyIfEmpty) {
+        // Guard against two scans running at the same time (e.g. double-click)
+        if (!scanning.compareAndSet(false, true)) {
+            Log.info("Scan already in progress — ignoring duplicate request");
+            return;
         }
 
-        // ── Steam + Epic ─────────────────────────────────────────────────────
-        // Build a set of paths already in the library so we don't add duplicates
-        Set<String> existingPaths = library.getGames().stream()
-                .filter(g -> g.getPath() != null)
-                .map(Game::getPath)
-                .collect(Collectors.toSet());
+        // Show loading overlay — Platform.runLater ensures the view is in the
+        // content area before we try to access the controller
+        Platform.runLater(() -> {
+            LibraryController lc = getCurrentController();
+            if (lc != null) lc.showLoading(true);
+        });
 
-        for (Game game : platformGames) {
-            if (Objects.equals(game.getName(), "Steamworks Common Redistributables")) continue;
-            if (existingPaths.contains(game.getPath())) continue; // already imported
+        // Track how many Steam/Epic games are added so the notify check is accurate
+        AtomicInteger platformAdded = new AtomicInteger(0);
 
-            if (game.getIcon() == null && game.getPath() != null) {
-                Image icon = IconExtractor.extract32Icon(game.getPath());
-                game.setIcon(icon);
-                game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
+        // Task returns new CurseForge instances so the picker can be shown on the
+        // FX thread in setOnSucceeded
+        Task<List<Game>> scanTask = new Task<>() {
+            @Override
+            protected List<Game> call() {
+                // ── Steam + Epic (background) ─────────────────────────────────
+                Set<String> existingPaths = library.getGames().stream()
+                        .filter(g -> g.getPath() != null)
+                        .map(Game::getPath)
+                        .collect(Collectors.toSet());
+
+                List<Game> platformGames = new ArrayList<>();
+                if (launchers.contains("steam"))
+                    platformGames.addAll(steamDetector.detectAllSteamGames());
+                if (launchers.contains("epic"))
+                    platformGames.addAll(epicDetector.detectAllEpicGames());
+
+                for (Game game : platformGames) {
+                    if (Objects.equals(game.getName(), "Steamworks Common Redistributables")) continue;
+                    if (existingPaths.contains(game.getPath())) continue;
+
+                    if (game.getIcon() == null && game.getPath() != null) {
+                        Image icon = IconExtractor.extract32Icon(game.getPath());
+                        game.setIcon(icon);
+                        game.setIconPath(IconExtractor.saveIconToFile(icon, game.getName()));
+                    }
+                    library.addGame(game);
+                    platformAdded.incrementAndGet();
+                }
+
+                // ── CurseForge detection + icon caching (background) ──────────
+                if (launchers.contains("curseforge")) {
+                    List<Game> all = new CurseForgeDetector().detectAllInstances();
+                    return filterNewCurseForgeInstances(all);
+                }
+
+                return new ArrayList<>();
             }
-            library.addGame(game);
-            added++;
-        }
+        };
 
-        if (launchers.contains("curseforge")) {
-            // ── CurseForge ───────────────────────────────────────────────────────
-            // Filter to only instances not already in the library, then show picker
-            List<Game> allCfInstances = new CurseForgeDetector().detectAllInstances();
-            List<Game> newCfInstances = filterNewCurseForgeInstances(allCfInstances);
+        scanTask.setOnSucceeded(e -> {
+            // ── Back on FX thread ─────────────────────────────────────────────
+            List<Game> newCfInstances = scanTask.getValue();
+            int cfAdded = 0;
 
             if (!newCfInstances.isEmpty()) {
                 List<Game> chosen = showCurseForgePicker(newCfInstances);
                 if (chosen != null) {
                     for (Game game : chosen) {
                         library.addGame(game);
-                        added++;
+                        cfAdded++;
                     }
                 }
             }
-        }
-        LibraryStorage.saveLibrary(library.getGames());
 
-        // Refresh the library view if it's currently visible
-        LibraryController lc = getCurrentController();
-        if (lc != null) lc.refresh();
+            LibraryStorage.saveLibrary(library.getGames());
+            scanning.set(false);
 
-        return added;
+            LibraryController lc = getCurrentController();
+            if (lc != null) {
+                lc.showLoading(false);
+                lc.refresh();
+            }
+
+            // Only notify if nothing was added across all launchers this scan
+            int totalAdded = platformAdded.get() + cfAdded;
+            if (notifyIfEmpty && totalAdded == 0) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Scan Complete");
+                alert.setHeaderText(null);
+                alert.setContentText("No new games were found.");
+                alert.show();
+            }
+        });
+
+        scanTask.setOnFailed(e -> {
+            Log.error("Game scan failed", scanTask.getException());
+            scanning.set(false);
+            LibraryController lc = getCurrentController();
+            if (lc != null) lc.showLoading(false);
+        });
+
+        new Thread(scanTask).start();
     }
 
-    // No-arg version used by the Scan for Games button — always scans everything
-    public int autoAddGames() {
-        return autoAddGames(Set.of("steam", "epic", "curseforge"));
+    // Called by the first-boot picker — no empty notification needed
+    public void autoAddGames(Set<String> launchers) {
+        autoAddGames(launchers, false);
+    }
+
+    // Called by the Scan for Games button — notifies if nothing new found
+    public void autoAddGames() {
+        autoAddGames(Set.of("steam", "epic", "curseforge"), false);
+    }
+
+    /** Saves the current library to disk — called by other controllers that modify game state. */
+    public void saveLibrary() {
+        LibraryStorage.saveLibrary(library.getGames());
     }
 
     /**
@@ -330,19 +397,14 @@ public class MainController {
     /** Triggered by the "Scan for Games" button in the sidebar. */
     @FXML
     private void onScanClicked() {
-        int added = autoAddGames();
-        if (added == 0) {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Scan Complete");
-            alert.setHeaderText(null);
-            alert.setContentText("No new games were found.");
-            alert.show();
-        }
+        autoAddGames(Set.of("steam", "epic", "curseforge"), true);
     }
 
     private void scanGameFolder(File folder) {
         ArrayList<File> foundFiles = new ArrayList<>();
-        for (File file : folder.listFiles()) {
+        File[] children = folder.listFiles();
+        if (children == null) return;
+        for (File file : children) {
             if (file.getName().endsWith(".exe")) {
                 foundFiles.add(file);
             } else if (file.isDirectory()) {
@@ -561,6 +623,7 @@ public class MainController {
         }
 
         ArrayList<File> chosenGames = showMultiSelectExeDialog(executables);
+        if (chosenGames == null) return; // user cancelled the dialog
 
         for (File file : chosenGames) {
             if (file != null) {

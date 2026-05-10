@@ -12,25 +12,30 @@ public class SteamRegistryReader {
                     "reg query HKCU\\Software\\Valve\\Steam /v SteamPath"
             );
 
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream())
-            );
+            // Use try-with-resources so the reader and process streams are always closed
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
 
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.contains("SteamPath")) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains("SteamPath")) {
 
-                    // Split on 2+ spaces (registry column separator)
-                    String[] parts = line.trim().split("\\s{2,}");
+                        // Split on 2+ spaces (registry column separator)
+                        String[] parts = line.trim().split("\\s{2,}");
 
-                    // parts[0] = "SteamPath"
-                    // parts[1] = "REG_SZ"
-                    // parts[2] = "C:\\Program Files (x86)\\Steam"
+                        // parts[0] = "SteamPath"
+                        // parts[1] = "REG_SZ"
+                        // parts[2] = "C:\\Program Files (x86)\\Steam"
 
-                    if (parts.length >= 3) {
-                        return Paths.get(parts[2]);
+                        if (parts.length >= 3) {
+                            return Paths.get(parts[2]);
+                        }
                     }
                 }
+            } finally {
+                // Drain stderr and destroy the process so it doesn't linger
+                process.getErrorStream().close();
+                process.destroy();
             }
         } catch (Exception e) {
             e.printStackTrace();

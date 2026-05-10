@@ -147,13 +147,15 @@ public class CurseForgeDetector {
 
         // Icon priority 3: generated default grass-block icon — original artwork,
         // safe for commercial use. Saved to disk so it persists across sessions.
+        // NOTE: only setIconPath is used here — never createDefaultIcon() — because
+        // SwingFXUtils.toFXImage() must not be called from a background thread.
         if (game.getIcon() == null && game.getIconPath() == null) {
             String defaultPath = CurseForgeIconCache.getOrCreateDefaultIconPath();
             if (defaultPath != null) {
                 game.setIconPath(defaultPath);
-            } else {
-                game.setIcon(CurseForgeIconCache.createDefaultIcon());
             }
+            // If the file can't be written (e.g. disk full) we leave the icon null
+            // rather than calling createDefaultIcon() off the FX thread.
         }
 
         // Write a profile into CurseForge's launcher_profiles.json so --launch works

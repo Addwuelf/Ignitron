@@ -31,13 +31,22 @@ public class IconExtractor {
 
         WinGDI.ICONINFO info = new WinGDI.ICONINFO();
         if (!User32.INSTANCE.GetIconInfo(large[0], info)) {
+            User32.INSTANCE.DestroyIcon(large[0]);
             return null;
         }
 
-        BufferedImage img = hbitmapToBuffered(info.hbmColor);
-        if (img == null) return null;
-
-        return SwingFXUtils.toFXImage(img, null);
+        try {
+            BufferedImage img = hbitmapToBuffered(info.hbmColor);
+            if (img == null) return null;
+            return SwingFXUtils.toFXImage(img, null);
+        } finally {
+            // Free the GDI bitmaps allocated by GetIconInfo and the HICON from ExtractIconEx.
+            // Without this, each call leaks two HBITMAP handles and one HICON handle,
+            // which would exhaust the per-process GDI handle limit (10,000) on large libraries.
+            if (info.hbmColor != null) GDI32.INSTANCE.DeleteObject(info.hbmColor);
+            if (info.hbmMask  != null) GDI32.INSTANCE.DeleteObject(info.hbmMask);
+            User32.INSTANCE.DestroyIcon(large[0]);
+        }
     }
 
     public static String saveIconToFile(Image image, String gameName) {

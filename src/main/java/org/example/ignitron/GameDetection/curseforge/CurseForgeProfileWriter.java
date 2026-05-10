@@ -7,10 +7,10 @@ import org.example.ignitron.Log;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
-import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 
 /**
@@ -94,9 +94,14 @@ public class CurseForgeProfileWriter {
             // Insert or overwrite the profile using the instance folder name as the key
             profiles.add(profileName, profile);
 
-            try (Writer writer = new FileWriter(profilesFile)) {
+            // Write to a temp file first, then atomically rename over the real file.
+            // This prevents launcher_profiles.json from being left empty/corrupt if
+            // the JVM is interrupted or the disk is full mid-write.
+            File tempFile = new File(profilesFile.getParent(), profilesFile.getName() + ".tmp");
+            try (java.io.Writer writer = new java.io.FileWriter(tempFile)) {
                 gson.toJson(root, writer);
             }
+            Files.move(tempFile.toPath(), profilesFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
             Log.info("Wrote CurseForge launcher profile: " + profileName);
 

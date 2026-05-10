@@ -261,6 +261,18 @@
     -fx-effect: dropshadow(gaussian, rgba(74,142,247,0.2), 8, 0, 0, 2);
 }
 
+/* ---- Loading Overlay ---- */
+.loading-overlay {
+    -fx-background-color: rgba(22, 22, 22, 0.88);
+    -fx-spacing: 16;
+}
+
+.loading-spinner {
+    -fx-pref-width: 52px;
+    -fx-pref-height: 52px;
+    -fx-progress-color: #4a8ef7;
+}
+
 /* ---- Sidebar spacer (pushes Scan button to the bottom) ---- */
 .sidebar-spacer {
     -fx-min-height: 0;

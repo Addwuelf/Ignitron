@@ -72,6 +72,12 @@ public class SteamDetector {
     public List<Game> detectAllSteamGames() {
         List<Game> games = new ArrayList<>();
 
+        // Steam is not installed or registry read failed — nothing to detect
+        if (steamRoot == null) {
+            Log.info("Steam path not found — skipping Steam detection");
+            return games;
+        }
+
         try {
             // Get the path of all steam libraries
             List<Path> libraries = LibraryParser.getSteamLibraries(steamRoot);
@@ -88,6 +94,7 @@ public class SteamDetector {
 
                     Path gameFolder = steamApps.resolve("common").resolve(manifest.getInstallDir());
 
+                    if (MainController.getInstance() == null) continue;
                     ArrayList<File> gameExes = MainController.getInstance().scanFolderForExecutables(gameFolder.toFile(), manifest.getName());
 
                     LauncherInfo info = new LauncherInfo("steam", manifest.getName(), gameFolder);
