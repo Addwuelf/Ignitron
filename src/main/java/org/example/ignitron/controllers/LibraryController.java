@@ -1,30 +1,26 @@
 package org.example.ignitron.controllers;
 
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
+import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
+
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.stage.DirectoryChooser;
-import javafx.stage.Stage;
-import org.example.ignitron.Config;
-import org.example.ignitron.Game;
-import org.example.ignitron.Library;
-import org.example.ignitron.LibraryStorage;
+
+import org.example.ignitron.*;
 import org.example.ignitron.GameDetection.curseforge.CurseForgeDetector;
 
-import java.io.File;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashSet;
+
 import java.util.List;
-import java.util.Set;
+
 
 public class LibraryController {
 
@@ -42,20 +38,23 @@ public class LibraryController {
     @FXML private TextField tagsField;
     @FXML private Button addGameButton;
 
-
+    
     public void initialize() {
         gameGrid.getChildren().clear();
-
-        if(!config.isAutoAddDone()) {
-            MainController.getInstance().showFirstBootPicker();
-            config.setAutoAddDone(true);
-            config.save();
-        }
     }
 
     public void setLibrary(Library library) {
         this.library = library;
-        refresh();
+        if (!config.isAutoAddDone()) {
+            MainController.getInstance().showFirstBootPicker();
+            config.setAutoAddDone(true);
+            config.save();
+        }
+        refreshLibrary();
+    }
+    
+    public void setconfig(Config config) {
+        this.config = config;
     }
 
     /** Shows or hides the loading overlay that sits on top of the game grid. */
@@ -64,31 +63,33 @@ public class LibraryController {
         loadingOverlay.setManaged(loading);
     }
 
-    public void refresh() {
+    public void refresh(boolean starredOnly) {
         gameGrid.getChildren().clear();
 
-        if (library != null) {
-            for (Game game : library.getGames()) {
+        if (library == null) {
+            Log.error("Library is null while refreshing", new Throwable());
+            return;
+        }
 
-                Node card = createGameCard(game);
-                gameGrid.getChildren().add(card);
-            }
+        for (Game game : library.getGames()) {
+            if (starredOnly && !game.isFavorited()) continue;
+            gameGrid.getChildren().add(createGameCard(game));
         }
     }
+
 
     public void search(String query) {
         if (library == null) return;
 
         gameGrid.getChildren().clear();
 
-        // Use the full list when the query is empty, otherwise show only matches
         List<Game> results = (query == null || query.isBlank())
                 ? library.getGames()
                 : library.filterByName(query);
 
         for (Game game : results) {
-            Node card = createGameCard(game);
-            gameGrid.getChildren().add(card);
+            if (config.isFavoriteToggled() && !game.isFavorited()) continue;
+            gameGrid.getChildren().add(createGameCard(game));
         }
     }
 
@@ -96,14 +97,14 @@ public class LibraryController {
         if (library != null) {
             library.addGame(game);
             LibraryStorage.saveLibrary(library.getGames());
-            refresh();
+            refreshLibrary();
         }
     }
 
     public void removeGame(Game game) {
         library.removeGame(game);
         LibraryStorage.saveLibrary(library.getGames());
-        refresh();
+        refreshLibrary();
     }
 
 
@@ -128,11 +129,15 @@ public class LibraryController {
             pb.start();
             game.setLastPlayed(LocalDateTime.now());
             LibraryStorage.saveLibrary(library.getGames()); // persist lastPlayed
-            refresh();
+            refreshLibrary();
         }
         catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void refreshLibrary() {
+        refresh(config.isFavoriteToggled());
     }
 
 
@@ -169,6 +174,32 @@ public class LibraryController {
 
             card.getChildren().addAll(icon, name, playButton);
 
-            return card;
+            Label star = new Label("★");
+            star.getStyleClass().add("card-star");
+            if (game.isFavorited()) star.getStyleClass().add("favorited");
+            star.setVisible(game.isFavorited()); // hidden by default unless favorited
+            StackPane.setAlignment(star, Pos.TOP_RIGHT);
+            StackPane.setMargin(star, new Insets(10, 12, 0, 0));
+
+            StackPane wrapper = new StackPane(card, star);
+            star.setOnMouseClicked(e -> {
+                e.consume(); // don't open game details
+                game.setFavorited(!game.isFavorited());
+                if (game.isFavorited()) {
+                    star.getStyleClass().add("favorited");
+                } else {
+                    star.getStyleClass().remove("favorited");
+                }
+                LibraryStorage.saveLibrary(library.getGames());
+                if (config.isFavoriteToggled()) refreshLibrary();
+            });
+            wrapper.setOnMouseEntered(e -> star.setVisible(true));
+            wrapper.setOnMouseExited(e -> star.setVisible(game.isFavorited()));
+            wrapper.setOnMouseClicked(e -> {
+                if (e.getTarget() instanceof Button) return;
+                MainController.getInstance().showGameDetails(game);
+            });
+            card.setOnMouseClicked(null);
+            return wrapper;
         }
 }

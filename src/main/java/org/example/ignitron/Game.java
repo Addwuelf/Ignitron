@@ -20,6 +20,7 @@ public class Game {
     private String launcher;
     private transient File folder;
     private Map<String, String> metadata;
+    private boolean favorited = false;
 
     // Full launch command used instead of plain path when extra arguments are needed
     // (e.g. CurseForge instances that require --workDir and --launch flags)
@@ -92,5 +93,13 @@ public class Game {
     public void addTag(String tag) { gameTags.add(tag.toLowerCase()); }
     public void removeTag(String tag) { gameTags.remove(tag.toLowerCase()); }
     public boolean hasTag(String tag) { return gameTags.contains(tag.toLowerCase()); }
+
+    public boolean isFavorited() {
+        return favorited;
+    }
+
+    public void setFavorited(boolean favorited) {
+        this.favorited = favorited;
+    }
 }
 
