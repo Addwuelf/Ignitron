@@ -28,6 +28,9 @@
     <top>
         <HBox styleClass="top-bar">
             <TextField fx:id="searchField" promptText="Search games..." styleClass="search-field" HBox.hgrow="ALWAYS" />
+            <Button fx:id="starredFilterButton" text="★ Starred"
+                    styleClass="starred-filter-button"
+                    onAction="#onStarredFilterClicked" />
             <Button fx:id="addGameButton" text="Add Game" styleClass="add-game-button" onAction="#onAddGameClicked" />
         </HBox>
     </top>

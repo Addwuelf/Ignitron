@@ -14,6 +14,8 @@ public class Config {
 
     private boolean autoAddDone;
 
+    private boolean favoriteToggled;
+
     public boolean isAutoAddDone() {
         return autoAddDone;
     }
@@ -48,5 +50,13 @@ public class Config {
         catch (Exception e) {
             Log.error("Failed to load config file!", e);
         }
+    }
+
+    public boolean isFavoriteToggled() {
+        return favoriteToggled;
+    }
+
+    public void setFavoriteToggled(boolean favoriteToggled) {
+        this.favoriteToggled = favoriteToggled;
     }
 }

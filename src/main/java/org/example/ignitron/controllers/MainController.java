@@ -49,8 +49,13 @@ public class MainController {
     @FXML
     private Button addGameButton;
 
+    @FXML
+    private Button starredFilterButton;
+
 
     private Library library;
+
+    private Config config = Config.load();
 
     private static MainController instance;
 
@@ -88,6 +93,10 @@ public class MainController {
         // Load the default view
         loadView("/org/example/ignitron/LibraryView.fxml");
 
+        if (config.isFavoriteToggled()) {
+            starredFilterButton.getStyleClass().add("active");
+        }
+
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
             LibraryController controller = getCurrentController();
             if (controller != null) {
@@ -112,7 +121,7 @@ public class MainController {
             // Pass the shared library to controllers that need it
             Object controller = fxmlLoader.getController();
             if (controller instanceof LibraryController libController) {
-
+                libController.setconfig(config);
                 libController.setLibrary(library);
             }
             view.setUserData(controller);
@@ -263,7 +272,7 @@ public class MainController {
             LibraryController lc = getCurrentController();
             if (lc != null) {
                 lc.showLoading(false);
-                lc.refresh();
+                refreshLibrary();
             }
 
             // Only notify if nothing was added across all launchers this scan
@@ -667,6 +676,28 @@ public class MainController {
         return (ArrayList<File>) result.orElse(null);
     }
 
+    @FXML
+    private void onStarredFilterClicked() {
+
+        boolean isActive = starredFilterButton.getStyleClass().contains("active");
+        if (isActive) {
+            starredFilterButton.getStyleClass().remove("active");
+            // show all games
+            config.setFavoriteToggled(false);
+        } else {
+            starredFilterButton.getStyleClass().add("active");
+            // show only favorited games
+            config.setFavoriteToggled(true);
+
+        }
+        config.save();
+        getCurrentController().setconfig(config);
+        refreshLibrary();
+    }
+
+    private void refreshLibrary() {
+        getCurrentController().refresh(config.isFavoriteToggled());
+    }
 
     @FXML
     private void onLibraryClicked() {
